@@ -147,6 +147,14 @@
     }
     .fan-caption .fc-desc { margin-top: 0.3rem; font-size: clamp(0.8rem, 1.1vw, 0.98rem); color: rgba(247, 236, 236, 0.8); }
   </style>
+
+  <!-- Vercel Web Analytics + Speed Insights (static-site / "Other" framework) -->
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
   <nav class="site-nav">
@@ -375,24 +383,24 @@
     // honors photos in display order (Rise Global sits near the centre / lead)
     var HONORS = [
       { img: "waves-of-action.png", t: "Waves of Action Fellow",
-        d: "Selected as a Waves of Action Fellow by the Okeanos Foundation for the Sea. Spent 10 days at sea aboard a traditional Polynesian catamaran in France, part of a European ocean-advocacy and environmental-education program." },
-      { img: "jugend-debattiert.png", t: "State Finalist · Jugend Debattiert",
-        d: "Reached the state competition of Jugend Debattiert — Germany's national youth debate tournament, held under the patronage of the Federal President. One of ~200,000 students competing each year." },
-      { img: "faculty-honors.JPG", t: "Faculty Honors · Georgia Tech (4.0 GPA)",
-        d: "Awarded to Georgia Tech undergraduates who earn a 4.0 GPA in a semester — verified and published by the Institute.",
+        d: "By the Okeanos Foundation for the Sea, spent 10 days at sea aboard on a traditional Polynesian catamaran in France as a part of a European ocean-advocacy and environmental-education program." },
+      { img: "jugend-debattiert.png", t: "State Finalist: Jugend Debattiert",
+        d: "Reached the state competition of Jugend Debattiert, Germany's national youth debate tournament, held under the patronage of the Federal President. One of ~200,000 students competing each year." },
+      { img: "faculty-honors.JPG", t: "Faculty Honors for 4.0 GPA",
+        d: "Awarded to Georgia Tech undergraduates who earn a 4.0 GPA in a semester.",
         link: "https://meritpages.com/saleenati" },
       { img: "rise-fellow.JPG", t: "Rise Global Fellow",
-        d: "One of 100 people selected worldwide by Schmidt Futures and the Rhodes Trust — the same organization behind the Rhodes Scholarship. A global, competitive, lifelong selection with need-based scholarships, mentorship, and career support for life. Talent is everywhere; opportunity is not. Rise gave me both.",
+        d: "One of 100 people selected worldwide by Schmidt Futures and the Rhodes Trust. A global, competitive, lifelong selection with need-based scholarships, mentorship, and career support.",
         link: "https://www.risefortheworld.org/winners/saleena-tiwari/" },
-      { img: "rise-summit.JPG", t: "Rise Summit · Oxford University",
+      { img: "rise-summit.JPG", t: "Rise Summit, Oxford University",
         d: "The Rise Residential Summit brought all 100 Global Fellows of a cohort together for an in-person program at the University of Oxford.",
         link: "https://www.youtube.com/watch?v=QaVgoytSFsQ" },
-      { img: "georgia-tech.JPG", t: "Georgia Tech · CS (Honors)",
+      { img: "georgia-tech.JPG", t: "Georgia Tech CS Honors Student",
         d: "Studying Computer Science (Honors) at Georgia Tech — ranked #3 in the US and #1 among public universities for undergraduate engineering." },
       { img: "start-scholar.png", t: "START Scholar",
-        d: "The START Scholarship is awarded to high-school students in Germany for exceptional academic achievement and social commitment — one of Germany's most recognized youth scholarships and a feeder to the Studienstiftung des deutschen Volkes, Germany's most prestigious academic foundation." },
-      { img: "start-state-representative.png", t: "State Representative · Schleswig-Holstein",
-        d: "Represented my state, Schleswig-Holstein, in national debates and events for the START Foundation." }
+        d: "The START Scholarship is awarded to high-school students in Germany for exceptional academic achievement and social commitment as one of Germany's most recognized youth scholarships." },
+      { img: "start-state-representative.png", t: "State Representative at START-Stifting",
+        d: "Represented my state, Schleswig-Holstein, in national debates and events for the START-Stiftung." }
     ];
 
     var N = HONORS.length, mid = (N - 1) / 2;

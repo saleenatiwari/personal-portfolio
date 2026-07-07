@@ -6,3 +6,8 @@
 
 # Local Claude Code settings (machine-specific)
 .claude/settings.local.json
+
+# npm — not used by this static site; keep it out so Vercel stays in static mode
+node_modules/
+package.json
+package-lock.json
