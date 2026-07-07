@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projects · Saleena Tiwari</title>
+  <style>
+    :root { --accent: #173A5E; --wine: #57101e; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100vh; background: var(--wine); }
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: #F7ECEC; overflow: hidden;   /* single-screen experience — no page scroll */
+    }
+
+    /* elegant top navigation */
+    .site-nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: center; align-items: center;
+      flex-wrap: nowrap; white-space: nowrap;            /* stay on one line */
+      gap: clamp(0.15rem, 1.8vw, 2rem);
+      padding: clamp(0.9rem, 2vw, 1.6rem) clamp(0.6rem, 2vw, 2rem); z-index: 50;
+    }
+    .site-nav a {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+      /* shrink the font as the viewport narrows instead of folding */
+      font-size: clamp(0.58rem, 1.4vw, 1.02rem); font-weight: 400; letter-spacing: 0.06em;
+      color: #F7ECEC; text-decoration: none;
+      padding: 0.45rem clamp(0.25rem, 0.9vw, 1rem); border-radius: 999px;
+      transition: background-color 0.25s ease; white-space: nowrap; line-height: 1;
+    }
+    .site-nav a:hover { background-color: rgba(255, 255, 255, 0.14); }
+    .site-nav a.home { font-weight: 700; }
+
+    /* ---- projects section: two columns ---- */
+    .projects { position: relative; display: flex; width: 100%; min-height: 100vh; }
+    .col { position: relative; }
+    /* LEFT — the stacked-card scroller */
+    .col-left {
+      flex: 1 1 58%;
+      display: flex; align-items: center; justify-content: center;
+      overscroll-behavior: contain;
+      /* clip the peeling cards so they never add page scroll height */
+      overflow: hidden;
+    }
+    /* RIGHT — where the detail card grows in (empty otherwise) */
+    .col-right { flex: 0 0 42%; }
+
+    /* filter checkboxes — stacked vertically on the right, hidden while a card is open */
+    .filters {
+      position: absolute; top: 50%; right: clamp(3rem, 12vw, 13rem);
+      transform: translateY(-50%);                   /* vertically centred on the right */
+      display: flex; flex-direction: column; align-items: flex-start; gap: 0.9rem;
+      z-index: 12;                                   /* below the detail card (40) */
+      transition: opacity 0.35s ease;
+    }
+    .filters.hidden { opacity: 0; pointer-events: none; }
+    .filter-chip {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-family: inherit; font-size: clamp(0.82rem, 1.05vw, 1rem); font-weight: 600;
+      letter-spacing: 0.01em; white-space: nowrap; cursor: pointer;
+      color: #F7ECEC; background: none; border: none; padding: 0.12rem;
+    }
+    .filter-chip .box {
+      width: 19px; height: 19px; flex: 0 0 auto; border-radius: 6px;
+      border: 1.5px solid rgba(247, 236, 236, 0.55);
+      display: flex; align-items: center; justify-content: center;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+    .filter-chip .box::after {
+      content: "✓"; color: #57101e; font-size: 12px; font-weight: 900; line-height: 1; opacity: 0;
+    }
+    .filter-chip:hover .box { border-color: rgba(247, 236, 236, 0.9); }
+    .filter-chip.on .box { background: #F7ECEC; border-color: #F7ECEC; }
+    .filter-chip.on .box::after { opacity: 1; }
+
+    /* dot / disc page counter on the far-left edge — lives inside the deck
+       panel so it slides away with it when the skills gallery opens */
+    .counter {
+      position: absolute; left: clamp(0.9rem, 2vw, 2.2rem); top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column; align-items: center;
+      gap: 11px; z-index: 60; user-select: none;
+    }
+    .counter .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(247, 236, 236, 0.32); transition: transform 0.35s ease, background-color 0.35s ease;
+    }
+    .counter .dot.active { background: #F7ECEC; transform: scale(1.95); }
+
+    /* the stack frame — big now that the title is gone; shrinks + slides left
+       when a card opens so the detail card has room on the right */
+    .stack {
+      position: relative;
+      width: min(66%, 620px); aspect-ratio: 16 / 10;
+      transform: scale(1.45);
+      transition: transform 0.5s cubic-bezier(.5, 0, .2, 1);
+      will-change: transform;
+    }
+    .stack.aside { transform: scale(0.98) translateX(-20%); }
+    .card {
+      position: absolute; left: 50%; top: 50%;
+      width: 100%; aspect-ratio: 16 / 10;
+      transform: translate(-50%, -50%);
+      border-radius: 16px; overflow: hidden; background: #fff;
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+      cursor: pointer; will-change: transform, opacity;
+      transition: box-shadow 0.2s ease;
+    }
+    .card.front { box-shadow: 0 26px 60px rgba(0,0,0,0.24); }
+    .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* ---- detail box: a card that grows out of the deck, on the right side.
+       Sits inside the section (below the nav), centered vertically — never an
+       overlay, never covers the header. ---- */
+    .detail {
+      position: absolute; top: 50%; left: 53%;   /* clears the deck on the left */
+      width: min(43vw, 660px);
+      background: #fff; border-radius: 20px;
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 26px 60px rgba(0,0,0,0.22);
+      z-index: 40; padding: 2.4rem 2.3rem 1.9rem;
+      transform-origin: left center;
+      transform: translateY(-50%) scale(0.72) translateX(-22px);
+      opacity: 0; pointer-events: none;
+      transition: transform 0.44s cubic-bezier(.5,0,.2,1), opacity 0.3s ease;
+    }
+    .detail.open {
+      transform: translateY(-50%) scale(1) translateX(0);
+      opacity: 1; pointer-events: auto;
+    }
+    .detail-close {
+      position: absolute; top: 0.9rem; right: 1.1rem; font-size: 1.5rem; line-height: 1;
+      background: none; border: none; color: #c4a29a; cursor: pointer; z-index: 2;
+    }
+    /* inner scroll area so the close button stays fixed on the card */
+    .detail-body { max-height: 66vh; overflow-y: auto; padding-right: 0.7rem; }
+    /* card view: title heading first, then the one-liner tagline (smaller), then the rest */
+    .detail-title {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", Georgia, serif;
+      font-size: clamp(2.1rem, 3.4vw, 3rem); line-height: 1.02; font-weight: 700;
+      color: #1A1A1A; margin-bottom: 0.35rem;
+    }
+    .detail-tag {
+      font-size: clamp(0.98rem, 1.35vw, 1.18rem); line-height: 1.4; font-weight: 500;
+      color: #57101e; margin-bottom: 1.5rem;
+    }
+    /* embedded demo video (16:9, responsive) */
+    .detail-embed {
+      position: relative; width: 100%; padding-bottom: 56.25%; height: 0;
+      border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; background: #000;
+    }
+    .detail-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .detail-links { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.6rem; }
+    .dlink {
+      font-size: 0.92rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap;
+      color: #fff; background: #57101e; text-decoration: none;
+      padding: 0.62rem 1.1rem; border-radius: 999px; transition: background-color 0.2s ease;
+    }
+    .dlink:hover { background: #7c1c30; }
+    .detail-stats {
+      display: flex; gap: 1.2rem; margin-bottom: 1.7rem;
+      padding: 1.15rem 0; border-top: 1px solid #efeae4; border-bottom: 1px solid #efeae4;
+    }
+    .detail-stats .stat { flex: 1; }
+    .detail-stats .stat-n {
+      display: block; font-family: "Didot","Bodoni 72",Georgia,serif;
+      font-size: 2rem; font-weight: 700; color: #57101e; line-height: 1;
+    }
+    .detail-stats .stat-l { display: block; font-size: 0.8rem; color: #857a70; margin-top: 0.3rem; line-height: 1.3; }
+    .detail-body section { margin-bottom: 1.35rem; }
+    .detail-body h3 {
+      font-size: 0.82rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+      color: #b0554e; margin-bottom: 0.42rem;
+    }
+    .detail-body section p { font-size: 1.06rem; line-height: 1.62; color: #35312d; }
+    /* status, moved to the foot of the card */
+    .detail-foot {
+      display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem;
+      font-size: 0.74rem; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase;
+      color: #57101e;
+    }
+    .detail-foot .foot-dot { width: 8px; height: 8px; border-radius: 50%; background: #57101e; display: inline-block; }
+
+    /* ====================================================================
+       Two-panel pager  (portfolio deck  <->  skills gallery)
+       ==================================================================== */
+    /* fixed so the two stacked panels add NO scrollable height — the only way
+       to move between panels is the arrow buttons (no scroll navigation) */
+    #pager {
+      position: fixed; top: 0; left: 0; width: 100%;
+      transition: transform 0.5s cubic-bezier(.7, 0, .18, 1);   /* snappy snap */
+      will-change: transform;
+    }
+    .panel { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+
+    /* up / down navigation arrows */
+    .pager-arrow {
+      position: fixed; left: 50%;
+      width: 46px; height: 46px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255, 255, 255, 0.65); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      border: 1px solid rgba(0, 0, 0, 0.08); color: #2A2A2A;
+      cursor: pointer; z-index: 70;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      transition: opacity 0.45s ease, background-color 0.25s ease;
+    }
+    .pager-arrow:hover { background: rgba(255, 255, 255, 0.95); }
+    .pager-arrow svg { width: 20px; height: 20px; display: block; }
+    .pager-arrow.down { bottom: 1.7rem; transform: translateX(-50%); animation: arrow-bob 1.9s ease-in-out infinite; }
+    .pager-arrow.up   { top: 5.2rem;   transform: translateX(-50%); }
+    .pager-arrow.hidden { opacity: 0; pointer-events: none; }
+    @keyframes arrow-bob {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%      { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ---- skills gallery (infinite, draggable, edge-faded) ---- */
+    .skills { background: var(--wine); }
+    .gallery {
+      position: absolute; inset: 0; overflow: hidden;
+      cursor: grab; touch-action: none; user-select: none;
+      /* fade the tiles into the background toward every edge */
+      -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, #000 34%, transparent 100%);
+              mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, #000 34%, transparent 100%);
+    }
+    .gallery.dragging { cursor: grabbing; }
+    /* skill search box — bottom-left, ~half size, icon only (no text) */
+    .skill-search {
+      position: absolute; bottom: clamp(1.2rem, 4vh, 2.4rem); left: clamp(1.2rem, 4vw, 3rem);
+      z-index: 20; width: min(170px, 42vw);
+      font-family: inherit; font-size: 0.82rem; color: #F7ECEC; text-align: left;
+      background: rgba(255, 255, 255, 0.08)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F7ECEC' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.6-3.6'/%3E%3C/svg%3E")
+        no-repeat left 0.7rem center;
+      background-size: 15px 15px;
+      border: 1px solid rgba(247, 236, 236, 0.35);
+      border-radius: 999px; padding: 0.42rem 0.9rem 0.42rem 2rem; outline: none;
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+    .skill-search::placeholder { color: rgba(247, 236, 236, 0.5); }
+    .skill-search:focus { border-color: rgba(247, 236, 236, 0.8); background-color: rgba(255, 255, 255, 0.13); }
+    /* a search match gets a gold ring and rises above its neighbours */
+    .tile.match { box-shadow: 0 0 0 3px #FFC83D, 0 14px 30px rgba(0, 0, 0, 0.25); z-index: 3; }
+    .tile {
+      position: absolute; top: 0; left: 0;
+      border-radius: 24px; overflow: hidden; background: #fff;
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+      will-change: transform, opacity;
+    }
+    .tile img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+
+    /* hover tooltip — skill name + 5-star proficiency */
+    .tile-tip {
+      position: fixed; z-index: 80; pointer-events: none;
+      background: #1A1A1A; color: #fff; text-align: center;
+      padding: 7px 12px; border-radius: 10px; white-space: nowrap;
+      opacity: 0; transform: translate(-50%, -100%);
+      transition: opacity 0.16s ease;
+    }
+    .tile-tip.show { opacity: 1; }
+    .tile-tip .tip-name { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; }
+    .tile-tip .tip-stars { margin-top: 3px; font-size: 0.8rem; letter-spacing: 2px; line-height: 1; }
+    .tile-tip .star { color: rgba(255, 255, 255, 0.28); }
+    .tile-tip .star.full { color: #FFC83D; }
+    .tile-tip .star.half {
+      background: linear-gradient(90deg, #FFC83D 50%, rgba(255, 255, 255, 0.28) 50%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    /* small viewports: drop the reserved column, keep the stack usable */
+    @media (max-width: 900px) {
+      .col-right { display: none; }
+      .col-left { flex-basis: 100%; }
+      .stack { width: min(82%, 440px); }
+      .counter { left: 0.6rem; }
+      /* detail becomes a bottom card on small screens */
+      .detail {
+        left: 50%; top: auto; bottom: 1rem; width: min(92%, 420px);
+        transform-origin: bottom center;
+        transform: translateX(-50%) scale(0.9) translateY(22px);
+      }
+      .detail.open { transform: translateX(-50%) scale(1) translateY(0); }
+      .detail-body { max-height: 46vh; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="home" href="about.html">About me</a>
+    <a href="projects.html">Projects</a>
+    <a href="craft.html">Craft</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <!-- arrows that snap between the two halves of the site -->
+  <button class="pager-arrow down" id="arrow-down" aria-label="Go to skills">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <button class="pager-arrow up hidden" id="arrow-up" aria-label="Back to portfolio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+  </button>
+
+  <div id="pager">
+    <!-- PANEL 1 — portfolio deck -->
+    <section class="projects panel" id="projects">
+      <!-- dot / disc counter pinned to the far-left edge of the deck panel -->
+      <div class="counter" id="counter" aria-hidden="true"></div>
+
+      <!-- filter chips (top-right), populated by JS -->
+      <div class="filters" id="filters"></div>
+
+      <!-- LEFT: stacked-card scroller -->
+      <div class="col col-left">
+        <div class="stack" id="stack"></div>
+      </div>
+
+      <!-- RIGHT: empty (detail card grows in here) -->
+      <div class="col col-right" aria-hidden="true"></div>
+
+      <!-- detail box — grows out of the deck on the right (placeholder hook) -->
+      <aside class="detail" id="detail" aria-hidden="true">
+        <button class="detail-close" id="detail-close" aria-label="Close">&times;</button>
+        <div class="detail-body" id="detail-body" data-lenis-prevent></div>
+      </aside>
+    </section>
+
+    <!-- PANEL 2 — skills gallery -->
+    <section class="skills panel" id="skills">
+      <input class="skill-search" id="skill-search" type="text" autocomplete="off"
+             placeholder="" aria-label="Search skills" />
+      <div class="gallery" id="gallery"></div>
+    </section>
+  </div>
+
+  <!-- hover tooltip for gallery tiles -->
+  <div class="tile-tip" id="tile-tip"></div>
+
+  <script src="../js/gsap.min.js"></script>
+  <script src="../js/ScrollTrigger.min.js"></script>
+  <script src="../js/lenis.min.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    /* ========================================================================
+       CONFIG
+       ===================================================================== */
+    var CARD_IMAGE = "../assets/card-placeholder.png"; // placeholder for projects without a picture
+    var TOTAL = 7;                                      // reset per active filter set
+
+    // per-project artwork (only projects that have a picture; others fall back to the placeholder)
+    var PROJECT_IMAGES = {
+      0: "../images/projects/main-cohort2.png",
+      1: "../images/projects/main-pantry.png",
+      2: "../images/projects/main-hypehub.png",
+      3: "../images/projects/main-x-automation.png",
+      4: "../images/projects/main-linkedin-scraper.png",
+      5: "../images/projects/main-yap.png",
+      6: "../images/projects/main-greentop.png"
+    };
+    var PROJECT_TITLES = ["Cohort", "Pantry", "HypeHub", "X Post Automation",
+                          "LinkedIn Scraper", "Yap", "GreenTop"];
+
+    /* ====================================================================
+       FILTERS — Featured is a curated highlight reel; the other three come
+       from the project→filter map. Multi-select, at least one always on.
+       ==================================================================== */
+    var FILTERS = [
+      { key: "featured",         label: "Featured" },
+      { key: "entrepreneurship", label: "Entrepreneurship" },
+      { key: "ai",               label: "AI & Automation" },
+      { key: "data",             label: "Data & APIs" }
+    ];
+    var FEATURED = [0, 2, 3, 6];   // curated highlight reel (edit freely)
+    var PROJECT_FILTERS = {
+      0: ["entrepreneurship", "ai"],   // Cohort
+      1: ["entrepreneurship"],         // Pantry
+      2: ["ai", "data"],               // HypeHub
+      3: ["ai"],                       // X Post Automation
+      4: ["ai", "data"],               // LinkedIn Scraper
+      5: ["entrepreneurship", "ai"],   // Yap
+      6: ["ai", "data"]                // GreenTop
+    };
+
+    /* ====================================================================
+       PROJECT CONTENT — this is where the copy lives. Edit freely.
+       Each project: tagline, sections[] (each is {h, p} OR {h, stats:[...]}),
+       optional embed (YouTube id), links[] (label + href).
+       Card order: tagline (title) -> sections -> video -> links (bottom).
+       ==================================================================== */
+    var PROJECT_DATA = {
+      0: {
+        tagline: "An AI assistant for student life with a social network built in.",
+        sections: [
+          { h: "Why I built it", p: "I kept watching capable people around me miss things they actually cared about. A fellowship deadline. Office hours. A job posting. Not because they weren't ambitious, but because nobody has time to manually track everything at once. I started building the assistant I needed for myself, and then I realized I was building it for everyone around me too." },
+          { h: "What it does", p: "Cohort connects to a student's email and quietly handles the rest. It tracks deadlines, surfaces opportunities, sends emails, books meetings, and matches students with the right people on campus, without being asked. On the other side, companies use Cohort Premium to reach students directly through their assistants instead of through ads." },
+          { h: "What I learned", p: "Talking to 500 students taught me something I did not expect: I might not be the main persona I am building for. The more interviews I ran, the more I realized I was building for people with struggles that are different from mine, and that means I have to actually listen to what they say rather than build from my own experience. Most of our features came directly from those conversations." },
+          { h: "Traction", stats: [
+            { n: "2,083+", l: "on the waitlist" },
+            { n: "500", l: "students interviewed" },
+            { n: "87%", l: "would use it daily" }
+          ] },
+          { h: "Status & my role", p: "Pre-launch. I am the COO. I make decisions about product direction and marketing, run user interviews to collect feedback, and do outreach to businesses. Right now, most of my work is building and maintaining our investor database, logging outreach, and keeping the fundraising pipeline organized. I also handle go-to-market strategy alongside the technical builds." }
+        ],
+        links: [
+          { label: "Student site", href: "https://www.trycohort.xyz/" },
+          { label: "Business site", href: "https://www.trycohort.xyz/business" },
+          { label: "Investor site", href: "https://www.trycohort.xyz/raise" }
+        ]
+      },
+      1: {
+        tagline: "The fridge in your pocket. Track what you have, waste less, buy smarter.",
+        sections: [
+          { h: "Why I built it", p: "I kept throwing away food I forgot I had and buying things I already owned. I wanted an app that did the remembering for me. When I talked to my friends and my parents about it, I realized this wasn't just me being disorganized — people don't waste food because they want to. They waste it because tracking what's already in the fridge takes more effort than just buying it again." },
+          { h: "What it does", p: "Pantry tracks the food you already have, reminds you before things expire, and suggests recipes based on what's sitting in your kitchen. You stop buying duplicates and start using what you own. When something runs out, it moves straight to your shopping list." },
+          { h: "How I built it", p: "Built solo as a mobile app using SwiftUI and the Open Food Facts database." },
+          { h: "What I learned", p: "The hard part was making data entry feel effortless. 'User friendly' really just means less friction — if someone has to stop and think about how to use the app, the app is already losing. The goal is for it to feel obvious every single time." },
+          { h: "Traction", p: "Shared with friends and family for informal testing. Enough of them kept coming back that I'm now prepping a public TestFlight release." },
+          { h: "Status & my role", p: "Personal project, TestFlight release planned. I designed and built the whole thing myself, from scratch." }
+        ],
+        links: [
+          { label: "GitHub", href: "https://github.com/saleenatiwari/Pantry2" }
+        ]
+      },
+      2: {
+        tagline: "An AI dance coach that teaches you the moves instead of letting you fake them.",
+        embed: "HtDZna7zXd0",
+        sections: [
+          { h: "Why I built it", p: "Everyone is learning to look like a creator without actually learning anything. I wanted a tool that taught the real skill, not one that made it easier to fake it. The tools that could actually help people learn to move and create are the ones that are missing — instead we have a flood of AI-generated content with nobody getting better from it." },
+          { h: "What it does", p: "HypeHub tracks your body in real time using computer vision, compares your movement frame by frame against a reference dance video, and gives you a live accuracy score plus a slow-motion practice mode." },
+          { h: "How I built it", p: "MediaPipe Pose Detection for real-time joint tracking, ElevenLabs for spoken feedback instead of a silent score, and Gemini to flag dangerous trending challenges and suggest safer alternatives. Runs as a single-page web app deployed on Vercel." },
+          { h: "What I learned", p: "Real-time pose comparison was easier to build than it was to make feel encouraging rather than critical. The voice feedback ended up mattering just as much as the accuracy score itself." },
+          { h: "Traction", p: "Hackathon build with a live Devpost entry and demo video." },
+          { h: "Status & my role", p: "Hackathon build with Trevor Pribis, Srinika Kalavala, and Maria López. I handled the MediaPipe integration and spent a lot of time making the pose detection as accurate as possible, built out the voice-feedback integration, and was responsible for the entire frontend." }
+        ],
+        links: [
+          { label: "Devpost", href: "https://devpost.com/software/hypehub" }
+        ]
+      },
+      3: {
+        tagline: "A free pipeline that turns my private journal into ready-to-post drafts, every weekday morning.",
+        sections: [
+          { h: "Why I built it", p: "I journal daily but I never post. Writing for an audience feels like a completely different skill than writing for myself, and every tool that solves this problem costs money I didn't want to spend as a student. I was tired of watching 'build in public' tools charge for something I knew I could build myself in a weekend." },
+          { h: "What it does", p: "Every weekday at 10am, two drafts land in my Telegram — written in my own voice, pulled from what I already journaled in Notion. I just review, and it's ready to post. No writing required." },
+          { h: "How I built it", p: "A GitHub Action powered by the Gemini API, pulling from my Notion journal and delivering drafts through Telegram. Fully automated, no paid tools." },
+          { h: "What I learned", p: "Training the model on how I actually talk mattered more than any prompt-engineering technique — the drafts only became usable once I stopped trying to make them sound generically good. And honestly, I'm still not posting as consistently as I wanted to. Maybe I was also partly just looking for an excuse to build the automation ;)" },
+          { h: "Status & my role", p: "Personal project, live and running daily. Built entirely on my own time, solo." }
+        ],
+        links: [
+          { label: "GitHub", href: "https://github.com/saleenatiwari/x-post-automation" }
+        ]
+      },
+      4: {
+        tagline: "Update your database of clients or employees with a one-click sync, using data from their LinkedIn.",
+        embed: "y41idGEouNs",
+        sections: [
+          { h: "Why I built it", p: "During my internship at Ember Fellowship, I realized that keeping 1,600+ alumni work histories current in the CRM meant someone manually checking LinkedIn profiles one by one. That was a real chunk of time every week, and nobody should have to do that. I wanted the database to stay current without anyone having to think about it." },
+          { h: "What it does", p: "A checkbox trigger kicks off an automation that pulls fresh LinkedIn data for each alum, compares it against what's already in Airtable, and creates or updates records automatically. No manual lookups required." },
+          { h: "How I built it", p: "Built in JavaScript using the Apify LinkedIn Profile Scraper to fetch data asynchronously. I polled the results back into Airtable and worked around edge cases including HTML-entity encoding and Airtable's lack of native async support." },
+          { h: "What I learned", p: "Airtable doesn't support setTimeout, which sounds minor until an entire async workflow depends on waiting for an external API. I ended up writing my own busy-wait function to work around it." },
+          { h: "Traction", p: "Reduced a roughly 15-minute manual task to a single click, running at the scale of 1,600 alumni records." },
+          { h: "Status & my role", p: "Internal tool, in production at Ember Fellowship. Solo build." }
+        ],
+        links: []
+      },
+      5: {
+        tagline: "Talk into your phone, get organized notes out. Built for visual learners — no writing required.",
+        sections: [
+          { h: "Why I built it", p: "I think out loud, not on paper. Ideas I have in the shower or at 2am disappear because writing them down feels like too much friction in the moment. The first version of an idea is the whole foundation for the second one, and I needed a way to make sure that first version always existed — even on the nights I didn't feel like writing anything down." },
+          { h: "What it does", p: "You talk, Yap listens, transcribes it live, and uses AI to sort what you said into the right bucket: tasks, projects, journal entries, life goals, or drafts. One recording can turn into several organized notes without you having to sort anything yourself." },
+          { h: "How I built it", p: "Building natively in Swift and SwiftUI, using Apple's Speech framework for real-time transcription and the Gemini API to categorize and structure the output. Stored locally with Core Data." },
+          { h: "What I learned", p: "Easy access to writing down your racing thoughts is the real challenge — which is why I'm exploring a widget or home-screen shortcut to reach Yap even quicker." },
+          { h: "Traction", p: "Still in development." },
+          { h: "Status & my role", p: "Solo project, actively in development. Recording, live transcription, and the AI integration are working; categorization logic, navigation, and the full design system are still being built." }
+        ],
+        links: []
+      },
+      6: {
+        tagline: "Turning Atlanta's cool-roof mandate into an actual action plan for building owners.",
+        embed: "iKL0rhhmQdo",
+        sections: [
+          { h: "Why I built it", p: "Atlanta made cool roofs mandatory but didn't make them simple. Building owners suddenly had a legal requirement with no clear path forward. I wanted someone to be able to go from 'now what?' to an actual plan in one sitting." },
+          { h: "What it does", p: "A user enters their address and roof details, and GreenTop ranks upgrade options — cool-roof coating, solar, green roofs, rainwater harvesting — by cost, savings, payback period, and climate impact. The output is a specific plan for that building, not a generic sustainability recommendation." },
+          { h: "How I built it", p: "Google Solar API for rooftop data, Gemini to turn that data and user inputs into a ranked recommendation, built on Next.js, Python, and Tailwind. As a team we signed up for free tiers of several APIs to access the data we needed within hackathon constraints." },
+          { h: "What I learned", p: "The hard part wasn't the sustainability math — it was making sure two different buildings didn't get the same generic answer. I also learned how much data you actually need to make this kind of recommendation useful: roof specs, weather patterns, local utility rates. Working with limited data and free-tier access pushed us to be creative about what we could realistically model." },
+          { h: "Traction", p: "Built for a hackathon, with a live demo deployed on Vercel and a public GitHub repo." },
+          { h: "Status & my role", p: "Hackathon build. I built the recommendation engine, the dashboard, the API integration, and the entire frontend myself." }
+        ],
+        links: [
+          { label: "Devpost", href: "https://devpost.com/software/canopy-z8o3tw" }
+        ]
+      }
+    };
+
+    /* ========================================================================
+       Build the cards
+       ===================================================================== */
+    var stack = document.getElementById("stack");
+    var counter = document.getElementById("counter");
+    var filtersEl = document.getElementById("filters");
+
+    var cards = [];                       // card elements (one per shown project)
+    var dots = [];                        // counter dots
+    var order = [];                       // project indices currently shown, in order
+    var active = { featured: true };      // active filter keys (at least one, default Featured)
+
+    // which projects match the active filters (union; Featured is a curated list)
+    function computeOrder() {
+      var out = [];
+      for (var i = 0; i < PROJECT_TITLES.length; i++) {
+        var show = active.featured && FEATURED.indexOf(i) !== -1;
+        if (!show) {
+          var tags = PROJECT_FILTERS[i] || [];
+          for (var t = 0; t < tags.length; t++) { if (active[tags[t]]) { show = true; break; } }
+        }
+        if (show) out.push(i);
+      }
+      return out.length ? out : FEATURED.slice();
+    }
+
+    // (re)build the deck + counter dots for the current filter selection
+    function buildDeck() {
+      order = computeOrder();
+      TOTAL = order.length;
+      stack.innerHTML = ""; counter.innerHTML = "";
+      cards = []; dots = [];
+      order.forEach(function (pi, k) {
+        var dot = document.createElement("span");
+        dot.className = "dot"; counter.appendChild(dot); dots.push(dot);
+        var card = document.createElement("div");
+        card.className = "card"; card.dataset.slot = k;
+        var img = document.createElement("img");
+        img.src = PROJECT_IMAGES[pi] || CARD_IMAGE;
+        img.alt = PROJECT_TITLES[pi] || ("Project " + (pi + 1));
+        img.draggable = false;
+        card.appendChild(img);
+        card.addEventListener("click", function () { toggleDetail(); });
+        stack.appendChild(card); cards.push(card);
+      });
+      pos = 0; target = 0; lastCur = -1;
+      closeDetail();
+    }
+
+    // build the filter chips (multi-select; you can't turn off the last one)
+    FILTERS.forEach(function (f) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "filter-chip" + (active[f.key] ? " on" : "");
+      chip.innerHTML = '<span class="box"></span><span class="lbl">' + f.label + '</span>';
+      chip.addEventListener("click", function () {
+        if (active[f.key]) {
+          var n = 0; for (var kk in active) { if (active[kk]) n++; }
+          if (n <= 1) return;             // at least one filter must stay on
+          active[f.key] = false;
+        } else {
+          active[f.key] = true;
+        }
+        chip.classList.toggle("on", !!active[f.key]);
+        buildDeck();
+      });
+      filtersEl.appendChild(chip);
+    });
+
+    /* ========================================================================
+       Lenis (smooth page scroll) + ScrollTrigger (section in-view)
+       ===================================================================== */
+    var lenis = null;
+    if (window.Lenis) {
+      lenis = new Lenis({ lerp: 0.12, smoothWheel: true });
+    }
+    if (window.gsap) {
+      gsap.ticker.add(function (t) { if (lenis) lenis.raf(t * 1000); });
+      gsap.ticker.lagSmoothing(0);
+    }
+    var inView = true;
+    if (window.gsap && window.ScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+      if (lenis) lenis.on("scroll", ScrollTrigger.update);
+      ScrollTrigger.create({
+        trigger: "#projects", start: "top 60%", end: "bottom 40%",
+        onToggle: function (self) { inView = self.isActive; }
+      });
+    }
+
+    /* ========================================================================
+       Stacked-card state — a continuous virtual index, wrapped for infinite loop
+       ===================================================================== */
+    var pos = 0, target = 0;
+
+    function wrapOff(k) {
+      var o = ((k - pos) % TOTAL + TOTAL) % TOTAL;   // 0 .. TOTAL-1
+      if (o > TOTAL / 2) o -= TOTAL;                 // -> nearest copy: -TOTAL/2 .. TOTAL/2
+      return o;
+    }
+
+    // fanned/angled deck: the front card (off 0) sits prominently at the bottom;
+    // upcoming cards recede UP & behind it. As you advance, the front card peels
+    // DOWN toward the viewer and off the bottom, fading out — then loops back in
+    // at the top/back via the modulo wrap.
+    function applyTransform(el, off) {
+      var x, y, rot, scale, op;
+      if (off >= 0) {
+        x = off * 4; y = -off * 16; rot = off * 1.5;  // recede upward & back (tighter stack)
+        scale = 1 - off * 0.04;
+        // ease far-back cards in so a wrapped card rises in instead of popping
+        op = off > 4 ? Math.max(0, 1 - (off - 4)) : 1;
+      } else {
+        // off<0: the card that just left travels FAR down & toward the viewer,
+        // staying opaque the whole way, then fades out fast only at the very end.
+        x = off * 5; y = -off * 150; rot = off * 3.5;
+        scale = 1 - off * 0.08;                        // grows toward viewer
+        var a = -off;                                  // how far it has left (0..)
+        op = a < 0.72 ? 1 : Math.max(0, 1 - (a - 0.72) / 0.26);
+      }
+      el.style.transform =
+        "translate(-50%,-50%) translate(" + x + "px," + y + "px) rotate(" + rot + "deg) scale(" + scale + ")";
+      el.style.opacity = op.toFixed(3);
+      el.style.zIndex = Math.round(600 - off * 12);    // leaving card (off<0) rides on top
+      el.style.pointerEvents = op < 0.2 ? "none" : "auto";
+      el.classList.toggle("front", Math.abs(off) < 0.5);
+    }
+
+    var lastCur = -1;
+    function render() {
+      if (!cards.length) return;
+      pos += (target - pos) * 0.18;                   // snappier catch-up easing
+      if (Math.abs(target - pos) < 0.0004) pos = target;
+      for (var k = 0; k < TOTAL; k++) applyTransform(cards[k], wrapOff(k));
+      var cur = ((Math.round(pos) % TOTAL) + TOTAL) % TOTAL;
+      if (cur !== lastCur) {
+        if (dots[lastCur]) dots[lastCur].classList.remove("active");
+        if (dots[cur]) dots[cur].classList.add("active");
+        lastCur = cur;
+        var pi = order[cur];                          // slot -> real project index
+        if (detailOpen) setDetail(pi);                // preview follows the front card
+      }
+    }
+    if (window.gsap) { gsap.ticker.add(render); }
+    else { (function loop() { render(); requestAnimationFrame(loop); })(); }
+
+    /* light snap — settle onto the nearest card shortly after input stops */
+    var snapTimer;
+    function snapSoon() { clearTimeout(snapTimer); snapTimer = setTimeout(function () { target = Math.round(target); }, 70); }
+
+    /* ========================================================================
+       Input — wheel / trackpad over the stack, plus keyboard arrows.
+       (No click-to-advance, no drag.)
+       ===================================================================== */
+    var rc = document.querySelector(".col-left");
+    rc.addEventListener("wheel", function (e) {
+      e.preventDefault();                              // cards capture the scroll here
+      target += e.deltaY * 0.0026;
+      snapSoon();
+    }, { passive: false });
+
+    window.addEventListener("keydown", function (e) {
+      if ((window.__activePage || 0) !== 0) return;        // only when the deck is on-screen
+      if (!inView || document.getElementById("detail").classList.contains("open")) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") { target += 1; e.preventDefault(); snapSoon(); }
+      else if (e.key === "ArrowUp" || e.key === "ArrowLeft") { target -= 1; e.preventDefault(); snapSoon(); }
+    });
+
+    /* ========================================================================
+       Detail panel (placeholder)
+       ===================================================================== */
+    var detail = document.getElementById("detail");
+    var detailBody = document.getElementById("detail-body");
+    var detailOpen = false;
+    document.getElementById("detail-close").addEventListener("click", closeDetail);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDetail(); });
+
+    function frontIndex() { return order[((Math.round(pos) % TOTAL) + TOTAL) % TOTAL]; }
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    // build the detail card's content — order: title -> one-liner -> sections -> video -> links
+    function buildDetail(i) {
+      var d = PROJECT_DATA[i];
+      var title = PROJECT_TITLES[i] || ("Project " + (i + 1));
+      if (!d) {
+        return '<h2 class="detail-title">' + esc(title) + '</h2>' +
+               '<p class="detail-tag">Details coming soon.</p>';
+      }
+      var h = "";
+      h += '<h2 class="detail-title">' + esc(title) + '</h2>';
+      if (d.tagline) h += '<p class="detail-tag">' + esc(d.tagline) + '</p>';
+      (d.sections || []).forEach(function (sec) {
+        h += '<section><h3>' + esc(sec.h) + '</h3>';
+        if (sec.stats && sec.stats.length) {
+          h += '<div class="detail-stats">';
+          sec.stats.forEach(function (s) {
+            h += '<div class="stat"><span class="stat-n">' + esc(s.n) + '</span><span class="stat-l">' + esc(s.l) + '</span></div>';
+          });
+          h += '</div>';
+        } else if (sec.p) {
+          h += '<p>' + esc(sec.p) + '</p>';
+        }
+        h += '</section>';
+      });
+      if (d.embed) {
+        h += '<div class="detail-embed"><iframe src="https://www.youtube.com/embed/' + d.embed +
+             '" title="' + esc(PROJECT_TITLES[i] || "demo") + ' demo" loading="lazy" ' +
+             'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+             'allowfullscreen></iframe></div>';
+      }
+      if (d.links && d.links.length) {
+        h += '<div class="detail-links">';
+        d.links.forEach(function (L) {
+          h += '<a class="dlink" href="' + L.href + '" target="_blank" rel="noopener">' + esc(L.label) + ' ↗</a>';
+        });
+        h += '</div>';
+      }
+      return h;
+    }
+    function setDetail(i) { detailBody.innerHTML = buildDetail(i); detailBody.scrollTop = 0; }
+
+    // clicking a card toggles the preview; X (or Escape) also closes it.
+    function toggleDetail() {
+      if (detailOpen) closeDetail();
+      else {
+        detailOpen = true; setDetail(frontIndex()); detail.classList.add("open");
+        stack.classList.add("aside");             // deck shrinks + slides left
+        filtersEl.classList.add("hidden");        // filters disappear behind the card
+      }
+    }
+    function closeDetail() {
+      detailOpen = false; detail.classList.remove("open");
+      stack.classList.remove("aside");            // deck returns to full size
+      filtersEl.classList.remove("hidden");       // filters return when the card closes
+    }
+
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+    buildDeck();   // initial deck for the default (Featured) filter
+  })();
+  </script>
+
+  <script>
+  /* ========================================================================
+     PAGER — snap between the portfolio deck (page 0) and skills (page 1).
+     No in-between: arrows + a scroll flick flip fully from one to the other.
+     ===================================================================== */
+  (function () {
+    "use strict";
+    var pager = document.getElementById("pager");
+    var aDown = document.getElementById("arrow-down");
+    var aUp   = document.getElementById("arrow-up");
+    var page = 0, locked = false;
+    window.__activePage = 0;
+
+    function goTo(p) {
+      if (p === page || locked) return;
+      page = p; window.__activePage = p; locked = true;
+      pager.style.transform = "translateY(" + (-p * 100) + "vh)";   // instant snap, no in-between
+      aDown.classList.toggle("hidden", p !== 0);
+      aUp.classList.toggle("hidden", p !== 1);
+      setTimeout(function () { locked = false; }, 540);
+    }
+    aDown.addEventListener("click", function () { goTo(1); });
+    aUp.addEventListener("click", function () { goTo(0); });
+
+    /* Navigation is BUTTON-ONLY. Scrolling never changes the panel:
+       - card page: the left side iterates the cards, the right side does nothing;
+         the down arrow is the only way to the gallery.
+       - skills page: nothing scrolls the page; the up arrow is the only way back,
+         and there is nothing below it. */
+  })();
+  </script>
+
+  <script>
+  /* ========================================================================
+     SKILLS GALLERY — infinite, draggable grid of placeholder icons.
+     Fills the screen, fades + shrinks toward the edges (sphere-like), and
+     shows a small tooltip when you stop and hover an icon.
+     ===================================================================== */
+  (function () {
+    "use strict";
+    var gallery = document.getElementById("gallery");
+    var tip = document.getElementById("tile-tip");
+    if (!gallery) return;
+
+    /* --- skills: { name, rating (0–5), icon }. Icons are placeholders in
+       assets/skills/ — drop the real logos in over the same filenames later. --- */
+    var SKILLS = [
+      { name: "Figma",         rating: 3,   icon: "../assets/skills/figma.svg" },
+      { name: "Airtable",      rating: 5,   icon: "../assets/skills/airtable.webp" },
+      { name: "Notion",        rating: 5,   icon: "../assets/skills/notion.png" },
+      { name: "Python",        rating: 4,   icon: "../assets/skills/python.webp" },
+      { name: "JavaScript",    rating: 4,   icon: "../assets/skills/javascript.png" },
+      { name: "HTML",          rating: 3,   icon: "../assets/skills/html.jpg" },
+      { name: "CSS",           rating: 3,   icon: "../assets/skills/css.webp" },
+      { name: "Java",          rating: 3,   icon: "../assets/skills/java.webp" },
+      { name: "CapCut",        rating: 5,   icon: "../assets/skills/capcut.png" },
+      { name: "Opus Clip",     rating: 5,   icon: "../assets/skills/opusclip.jpg" },
+      { name: "Blender",       rating: 4,   icon: "../assets/skills/blender.png" },
+      { name: "GitHub",        rating: 4,   icon: "../assets/skills/github.svg" },
+      { name: "Microsoft 365", rating: 5,   icon: "../assets/skills/microsoft365.jpg" },
+      { name: "SwiftUI",       rating: 4,   icon: "../assets/skills/swiftui.png" },
+      { name: "Xcode",         rating: 4,   icon: "../assets/skills/xcode.png" },
+      { name: "Apify",         rating: 5,   icon: "../assets/skills/apify.svg" },
+      { name: "ElevenLabs",    rating: 3.5, icon: "../assets/skills/elevenlabs.jpg" },
+      { name: "MediaPipe",     rating: 4.5, icon: "../assets/skills/mediapipe.png" },
+      { name: "Whisper Flow",  rating: 4,   icon: "../assets/skills/whisperflow.png" }
+    ];
+
+    // 5 stars, filled to the proficiency (supports halves, e.g. 4.5)
+    function starsHTML(r) {
+      var s = "";
+      for (var i = 1; i <= 5; i++) {
+        var cls = r >= i ? "full" : (r >= i - 0.5 ? "half" : "");
+        s += '<span class="star ' + cls + '">★</span>';
+      }
+      return s;
+    }
+
+    var TILE = 112, GAP = 52, CELL = TILE + GAP;
+    var cols, rows, spanW, spanH;
+    var offX = 0, offY = 0, velX = 0, velY = 0;
+    var dragging = false, lastX = 0, lastY = 0;
+    var tiles = [];
+    var query = "", seekX = null, seekY = null;   // search: query + pan target
+
+    function build() {
+      gallery.innerHTML = "";
+      tiles = [];
+      var vw = window.innerWidth, vh = window.innerHeight;
+      cols = Math.ceil(vw / CELL) + 3;
+      rows = Math.ceil(vh / CELL) + 3;
+      spanW = cols * CELL; spanH = rows * CELL;
+      var idx = 0;
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols; c++) {
+          var sk = SKILLS[idx % SKILLS.length];
+          var t = document.createElement("div");
+          t.className = "tile";
+          t.style.width = TILE + "px"; t.style.height = TILE + "px";
+          var im = document.createElement("img");
+          im.src = sk.icon; im.alt = sk.name; im.draggable = false;
+          t.appendChild(im);
+          t._col = c; t._row = r; t._skill = sk;
+          gallery.appendChild(t); tiles.push(t);
+          idx++;
+        }
+      }
+    }
+
+    function wrap(v, size) { return ((v % size) + size) % size; }
+
+    function frame() {
+      if (dragging) {
+        /* pointermove drives offX/offY directly */
+      } else if (seekX !== null) {                       // gliding a search match to centre
+        offX += (seekX - offX) * 0.12; offY += (seekY - offY) * 0.12;
+        if (Math.abs(seekX - offX) < 0.5 && Math.abs(seekY - offY) < 0.5) {
+          offX = seekX; offY = seekY; seekX = seekY = null;
+        }
+      } else {                                           // inertia glide after release
+        offX += velX; offY += velY;
+        velX *= 0.92; velY *= 0.92;
+        if (Math.abs(velX) < 0.01) velX = 0;
+        if (Math.abs(velY) < 0.01) velY = 0;
+      }
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var cx = vw / 2, cy = vh / 2, maxD = Math.hypot(cx, cy);
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        var x = wrap(t._col * CELL + offX, spanW) - CELL;
+        var y = wrap(t._row * CELL + offY, spanH) - CELL;
+        var d = Math.min(1, Math.hypot(x + TILE / 2 - cx, y + TILE / 2 - cy) / maxD);
+        var scale = 1 - 0.45 * d;                         // shrink toward edges (bulge)
+        var op = 1 - 0.85 * d * d;                        // and fade out
+        var matched = query && t._skill.name.toLowerCase().indexOf(query) !== -1;
+        if (query) {
+          op = matched ? Math.max(op, 0.92) : op * 0.12;  // matches pop, the rest dim
+          if (t._match !== matched) { t.classList.toggle("match", matched); t._match = matched; }
+        } else if (t._match) { t.classList.remove("match"); t._match = false; }
+        t.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale.toFixed(3) + ")";
+        t.style.opacity = (op < 0 ? 0 : op).toFixed(3);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    // pan the nearest matching tile to the centre of the screen
+    function panToMatch() {
+      var cx = window.innerWidth / 2, cy = window.innerHeight / 2, best = null, bd = Infinity;
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        if (t._skill.name.toLowerCase().indexOf(query) === -1) continue;
+        var x = wrap(t._col * CELL + offX, spanW) - CELL + TILE / 2;
+        var y = wrap(t._row * CELL + offY, spanH) - CELL + TILE / 2;
+        var dd = Math.hypot(x - cx, y - cy);
+        if (dd < bd) { bd = dd; best = { x: x, y: y }; }
+      }
+      if (best) { seekX = offX + (cx - best.x); seekY = offY + (cy - best.y); }
+    }
+
+    /* drag + inertia */
+    gallery.addEventListener("pointerdown", function (e) {
+      dragging = true; gallery.classList.add("dragging");
+      lastX = e.clientX; lastY = e.clientY; velX = velY = 0; seekX = seekY = null;
+      if (gallery.setPointerCapture) gallery.setPointerCapture(e.pointerId);
+      hideTip();
+    });
+    gallery.addEventListener("pointermove", function (e) {
+      if (dragging) {
+        var dx = e.clientX - lastX, dy = e.clientY - lastY;
+        offX += dx; offY += dy; velX = dx; velY = dy;
+        lastX = e.clientX; lastY = e.clientY;
+      } else {
+        var el = document.elementFromPoint(e.clientX, e.clientY);
+        var tile = el && el.closest && el.closest(".tile");
+        if (tile) {
+          var r = tile.getBoundingClientRect();
+          showTip(tile._skill, r.left + r.width / 2, r.top);
+        } else hideTip();
+      }
+    });
+    function endDrag() { if (dragging) { dragging = false; gallery.classList.remove("dragging"); } }
+    gallery.addEventListener("pointerup", endDrag);
+    gallery.addEventListener("pointercancel", endDrag);
+    gallery.addEventListener("pointerleave", hideTip);
+
+    function showTip(skill, x, y) {
+      tip.innerHTML = '<div class="tip-name">' + skill.name + '</div>' +
+                      '<div class="tip-stars">' + starsHTML(skill.rating) + '</div>';
+      tip.style.left = x + "px"; tip.style.top = (y - 8) + "px";
+      tip.classList.add("show");
+    }
+    function hideTip() { tip.classList.remove("show"); }
+
+    /* ---- search: type a skill (or ⌘F) to highlight + glide it to centre ---- */
+    var searchEl = document.getElementById("skill-search");
+    if (searchEl) {
+      searchEl.addEventListener("input", function () {
+        query = this.value.trim().toLowerCase();
+        if (query) panToMatch(); else { seekX = seekY = null; }
+      });
+      searchEl.addEventListener("keydown", function (e) { if (e.key === "Escape") { this.value = ""; query = ""; seekX = seekY = null; this.blur(); } });
+    }
+    // ⌘F / Ctrl+F focuses the skill search while the gallery is on-screen
+    window.addEventListener("keydown", function (e) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F") && (window.__activePage || 0) === 1 && searchEl) {
+        e.preventDefault(); searchEl.focus(); searchEl.select();
+      }
+    });
+
+    window.addEventListener("resize", build);
+    build();
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>

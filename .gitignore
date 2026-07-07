@@ -1,0 +1,8 @@
+# macOS junk
+.DS_Store
+
+# Blender auto-backups (not real working files; lose version history)
+*.blend1
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json

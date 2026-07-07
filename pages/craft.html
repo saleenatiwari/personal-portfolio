@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Craft · Saleena Tiwari</title>
+  <style>
+    :root { --accent: #1CC5D4; --wine: #57101e; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100vh; }
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--wine); color: #F7ECEC;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; overflow: hidden;          /* single screen, not scrollable */
+    }
+    /* elegant top navigation */
+    .site-nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: center; align-items: center;
+      flex-wrap: nowrap; white-space: nowrap;
+      gap: clamp(0.15rem, 1.8vw, 2rem);
+      padding: clamp(0.9rem, 2vw, 1.6rem) clamp(0.6rem, 2vw, 2rem); z-index: 50;
+    }
+    .site-nav a {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+      font-size: clamp(0.58rem, 1.4vw, 1.02rem); font-weight: 400; letter-spacing: 0.06em;
+      color: #F7ECEC; text-decoration: none;
+      padding: 0.45rem clamp(0.25rem, 0.9vw, 1rem); border-radius: 999px;
+      transition: background-color 0.25s ease; white-space: nowrap; line-height: 1;
+    }
+    .site-nav a:hover { background-color: rgba(255, 255, 255, 0.14); }
+    .site-nav a.home { font-weight: 700; }
+
+    /* centered 3D model + coming-soon caption */
+    .craft-main {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      margin-top: 3.5rem;                             /* clears the fixed nav */
+    }
+    .craft-model {
+      width: min(64vw, 560px); height: 60vh;
+      cursor: grab; touch-action: none;               /* click + horizontal swipe to spin */
+    }
+    .craft-model.dragging { cursor: grabbing; }
+    .craft-model canvas { width: 100%; height: 100%; display: block; }
+    .craft-soon {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+      font-size: clamp(1.3rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: #F7ECEC; margin-top: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="home" href="about.html">About me</a>
+    <a href="projects.html">Projects</a>
+    <a href="craft.html">Craft</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <main class="craft-main">
+    <div class="craft-model" id="craft-model"></div>
+    <p class="craft-soon">Coming soon</p>
+  </main>
+
+  <script src="../js/three.min.js"></script>
+  <script src="../js/GLTFLoader.js"></script>
+  <script>
+  /* ========================================================================
+     Rotating 3D "Saleena" model — starts facing the user, click + horizontal
+     swipe spins it (left/right), then it coasts and eases back to face front.
+     Same interaction as the projects-page model, standalone + centered here.
+     ===================================================================== */
+  (function () {
+    "use strict";
+    var wrap = document.getElementById("craft-model");
+    if (!wrap || !window.THREE) return;
+
+    var canvas = document.createElement("canvas");
+    wrap.appendChild(canvas);
+
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if ("outputColorSpace" in renderer) { renderer.outputColorSpace = THREE.SRGBColorSpace; }
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+    camera.position.set(0, 0.12, 5.2);
+    camera.lookAt(0, 0.02, 0);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x4a1f27, 1.05));
+    var key = new THREE.DirectionalLight(0xffffff, 1.55); key.position.set(3, 5, 4); scene.add(key);
+    var fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-4, 2, 2); scene.add(fill);
+
+    var spin = new THREE.Group();
+    scene.add(spin);
+
+    var FACE = -Math.PI / 2;      // yaw that faces the model toward the camera
+    var angle = FACE, angVel = 0, dragging = false, lastX = 0, settling = false;
+    spin.rotation.y = angle;
+
+    function size() {
+      var w = wrap.clientWidth, h = wrap.clientHeight;
+      if (!w || !h) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    size();
+    window.addEventListener("resize", size);
+
+    new THREE.GLTFLoader().load("../GLB/mini-me/saleena-girl.glb", function (g) {
+      var m = g.scene;
+      var box = new THREE.Box3().setFromObject(m);
+      var s = new THREE.Vector3(); box.getSize(s);
+      m.scale.setScalar(2.15 / (s.y || 1));           // big, centered
+      box = new THREE.Box3().setFromObject(m);
+      var c = new THREE.Vector3(); box.getCenter(c);
+      m.position.sub(c);
+      spin.add(m);
+    }, undefined, function (err) { console.error("girl model failed", err); });
+
+    /* click + horizontal swipe -> spin; release coasts then settles to front */
+    wrap.addEventListener("pointerdown", function (e) {
+      dragging = true; settling = false; angVel = 0; lastX = e.clientX;
+      wrap.classList.add("dragging");
+      if (wrap.setPointerCapture) { try { wrap.setPointerCapture(e.pointerId); } catch (x) {} }
+    });
+    wrap.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - lastX; lastX = e.clientX;
+      var d = dx * 0.011;                             // horizontal drag only
+      angle += d; angVel = d;
+    });
+    function release() { if (dragging) { dragging = false; settling = true; wrap.classList.remove("dragging"); } }
+    wrap.addEventListener("pointerup", release);
+    wrap.addEventListener("pointercancel", release);
+
+    function nearestFace() { return FACE + 2 * Math.PI * Math.round((angle - FACE) / (2 * Math.PI)); }
+
+    (function loop() {
+      requestAnimationFrame(loop);
+      if (!dragging) {
+        if (Math.abs(angVel) > 0.0016) {
+          angle += angVel; angVel *= 0.95;
+        } else if (settling) {
+          angVel = 0;
+          var t = nearestFace();
+          angle += (t - angle) * 0.08;
+          if (Math.abs(t - angle) < 0.0015) { angle = t; settling = false; }
+        }
+      }
+      spin.rotation.y = angle;
+      renderer.render(scene, camera);
+    })();
+  })();
+  </script>
+</body>
+</html>

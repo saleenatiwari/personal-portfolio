@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Me · Saleena Tiwari</title>
+  <!-- Fraunces (Black, optical sizing) — used for the marquee only -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,900&display=swap" rel="stylesheet" />
+  <style>
+    :root { --accent: #FF1E9C; --wine: #57101e; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; }
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--wine); color: #1A1A1A;   /* wine is the page background */
+      overflow-x: hidden;
+    }
+    /* elegant top navigation (font unchanged) */
+    .site-nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: center; align-items: center;
+      flex-wrap: nowrap; white-space: nowrap;
+      gap: clamp(0.15rem, 1.8vw, 2rem);
+      padding: clamp(0.9rem, 2vw, 1.6rem) clamp(0.6rem, 2vw, 2rem); z-index: 50;
+    }
+    .site-nav a {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+      font-size: clamp(0.58rem, 1.4vw, 1.02rem); font-weight: 400; letter-spacing: 0.06em;
+      color: #F7ECEC; text-decoration: none;
+      padding: 0.45rem clamp(0.25rem, 0.9vw, 1rem); border-radius: 999px;
+      transition: background-color 0.25s ease; white-space: nowrap; line-height: 1;
+    }
+    .site-nav a:hover { background-color: rgba(255, 255, 255, 0.14); }
+    .site-nav a.home { font-weight: 700; }
+
+    /* ===== hero — pinned during the scroll transition ===== */
+    .hero { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+
+    /* full-page background marquee (behind everything, z 0) */
+    .page-marquee {
+      position: absolute; inset: 0; z-index: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: clamp(0.4rem, 2.5vh, 2rem);
+      overflow: hidden; pointer-events: none;
+    }
+    .page-marquee .row { overflow: hidden; }
+    .page-marquee .track {
+      display: flex; width: max-content; will-change: transform;
+      animation: marquee-scroll linear infinite;
+    }
+    .page-marquee .row.rev .track { animation-direction: reverse; }
+    .page-marquee .track span {
+      display: block; white-space: nowrap; line-height: 1.05;
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 900; font-optical-sizing: auto;
+      font-variation-settings: 'opsz' 144, 'wght' 900;
+      font-size: clamp(3rem, 22vh, 18rem);
+      letter-spacing: 0.01em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.9);
+      padding-right: 0.3em;
+    }
+    @keyframes marquee-scroll { to { transform: translateX(-50%); } }
+
+    /* hero figure — bottom-flush; horizontal position + scale driven by JS.
+       (transform-origin bottom center => it shrinks from the TOP, bottom edge
+       stays glued to the bottom of the viewport.) No shadow / no glow. */
+    .stage {
+      position: absolute; bottom: 0; left: 50%; z-index: 2;
+      height: calc(100vh - 5.5rem);
+      aspect-ratio: 798 / 976;
+      max-width: none;
+      overflow: hidden;
+      transform-origin: bottom center;
+      will-change: transform;
+    }
+    .stage .layer {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: auto;
+      display: block;
+      -webkit-user-drag: none; user-select: none; pointer-events: none;
+    }
+    .stage .normal { z-index: 1; }
+    .stage .gold   { z-index: 2; will-change: -webkit-mask-image, mask-image; }
+    .stage .gold {
+      -webkit-mask-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0));
+              mask-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0));
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    }
+    .stage .laptop {
+      z-index: 3;
+      -webkit-mask-image: radial-gradient(ellipse 24% 32% at 12% 21%,
+                #000 0%, #000 58%, rgba(0,0,0,0) 100%);
+              mask-image: radial-gradient(ellipse 24% 32% at 12% 21%,
+                #000 0%, #000 58%, rgba(0,0,0,0) 100%);
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    }
+
+    /* About copy that types in during the transition (placeholder for now) */
+    .about-copy {
+      position: absolute; z-index: 4;
+      left: 53%; top: 24%;                 /* nudged down — sits lower on the right */
+      width: min(52ch, 44vw); max-height: 78vh;
+      text-align: left; color: #F7ECEC;
+      pointer-events: none;
+    }
+    .about-copy .about-hi {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+      font-size: clamp(2.4rem, 5.2vw, 4.2rem); font-weight: 700; line-height: 1.02;
+      color: #F7ECEC; margin-bottom: 0.7rem; min-height: 1.05em;
+    }
+    .about-copy p {
+      font-size: clamp(0.8rem, 1.12vw, 1.02rem);
+      line-height: 1.55; color: rgba(247, 236, 236, 0.9);
+      white-space: pre-line;               /* preserve the paragraph breaks in the typed text */
+      min-height: 1.2em;
+    }
+
+    /* ===== second half — "rainbow" fan of honors photos ===== */
+    .honors {
+      position: relative; width: 100%; height: 100vh; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--wine);
+    }
+    .fan { position: relative; width: min(1280px, 96vw); height: 80vh; }
+    .hcard {
+      position: absolute; left: 50%; top: 45%;
+      width: clamp(196px, 17vw, 306px); aspect-ratio: 4 / 5;   /* bigger, more horizontal than the reference */
+      border-radius: 18px; overflow: hidden;
+      background: #2a0a12; box-shadow: 0 22px 55px rgba(0, 0, 0, 0.45);
+      transition: transform 0.55s cubic-bezier(.34, .01, .2, 1),
+                  box-shadow 0.4s ease, filter 0.4s ease;
+      cursor: pointer; will-change: transform;
+    }
+    .hcard img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
+    .fan-caption {
+      position: absolute; left: 50%; bottom: 7vh;
+      transform: translateX(-50%) translateY(8px);
+      text-align: center; color: #F7ECEC; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease; z-index: 300; max-width: 82vw;
+    }
+    .fan-caption.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .fan-caption .fc-title {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", Georgia, serif;
+      font-size: clamp(1.2rem, 2.4vw, 1.9rem); font-weight: 700; letter-spacing: 0.02em;
+    }
+    .fan-caption .fc-desc { margin-top: 0.3rem; font-size: clamp(0.8rem, 1.1vw, 0.98rem); color: rgba(247, 236, 236, 0.8); }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="home" href="about.html">About me</a>
+    <a href="projects.html">Projects</a>
+    <a href="craft.html">Craft</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="hero" id="hero">
+    <!-- full-page scrolling background text (filled by JS) -->
+    <div class="page-marquee" id="page-marquee" aria-hidden="true"></div>
+
+    <div class="stage" id="stage">
+      <img class="layer normal" id="normal" src="../images/me/me-normal-no-laptop-sticker.png" alt="Saleena Tiwari" draggable="false" />
+      <img class="layer gold"   id="gold"   src="../images/me/me-gold-sticker.png" alt="" draggable="false" />
+      <img class="layer laptop" id="laptop" src="../images/me/me-gold-sticker.png" alt="" draggable="false" />
+    </div>
+
+    <!-- About copy — types in on scroll ("Hi there" is the big lead) -->
+    <div class="about-copy" id="about-copy" aria-hidden="true">
+      <h2 class="about-hi" id="about-hi"></h2>
+      <p id="about-body"></p>
+    </div>
+  </div>
+
+  <!-- SECOND HALF — locks in after the hero; a rainbow fan of honors photos -->
+  <section class="honors" id="honors">
+    <div class="fan" id="fan" aria-label="Honors gallery"></div>
+    <div class="fan-caption" id="fan-caption">
+      <div class="fc-title"></div>
+      <div class="fc-desc"></div>
+    </div>
+  </section>
+
+  <script src="../js/gsap.min.js"></script>
+  <script src="../js/ScrollTrigger.min.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var stage   = document.getElementById("stage");
+    var gold    = document.getElementById("gold");
+    var marquee = document.getElementById("page-marquee");
+    var bodyEl  = document.getElementById("about-body");
+    var hiEl    = document.getElementById("about-hi");
+    if (!stage) return;
+
+    /* ================= marquee (3 rows) ================= */
+    var PHRASE = "SALEENA TIWARI";
+    var CLEAR = "linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0))";
+    function buildMarquee() {
+      marquee.innerHTML = "";
+      for (var r = 0; r < 3; r++) {
+        var row = document.createElement("div");
+        row.className = "row" + (r % 2 ? " rev" : "");
+        var track = document.createElement("div");
+        track.className = "track";
+        track.style.animationDuration = (26 + r * 7) + "s";
+        for (var i = 0; i < 8; i++) {
+          var span = document.createElement("span");
+          span.textContent = PHRASE;
+          track.appendChild(span);
+        }
+        row.appendChild(track);
+        marquee.appendChild(row);
+      }
+    }
+    buildMarquee();
+
+    /* ================= scroll transition (GSAP + ScrollTrigger) =================
+       Part 1 lives here too: baseX shifts BOTH stickers left so the body is
+       centred in the viewport (the stage holds all three layers, so one offset
+       moves them together by the same amount). */
+    var scrollProgress = 0;
+    var BODY_CX = 0.70;                        // measured head+torso centre of the sticker
+    var vw, stageW, baseX, endX;
+    function computeVals() {
+      vw = window.innerWidth;
+      stageW = stage.clientWidth || vw * 0.5;
+      baseX = (0.5 - BODY_CX) * stageW;        // start: shift left so the body is centred
+      // end: slide left (full size — NO shrinking) until the laptop corner (the
+      // image's left edge) meets the screen's left edge. box left = vw/2 + x - stageW/2,
+      // so left edge = 0  =>  x = stageW/2 - vw/2.
+      endX = stageW * 0.5 - vw / 2;
+    }
+    computeVals();
+
+    var HI = "Hi there,";
+    var BODY =
+      "I am Saleena, a CS student at Georgia Tech. I was born in Nepal, raised in northern Germany, and now go to school in the U.S.\n\n" +
+      "I care most about solutions that address food insecurity, education, and youth empowerment. With roots on three continents, I am always looking for ways to bridge social issues with technical innovation.\n\n" +
+      "Outside of that, I have competed in debate tournaments, performed my own slam poetry, and once produced a podcast for 200 loyal listeners. When I am not writing code or sitting through a lecture, I am probably painting with watercolor, crocheting an endless blanket, or filming a vlog about my life that I will edit at 1am.\n\n" +
+      "Welcome to an attempt to showcase my life!";
+
+    function typeInto(el, str, c) {
+      var n = Math.max(0, Math.min(str.length, Math.round(c * str.length)));
+      el.textContent = str.slice(0, n);
+    }
+
+    if (window.gsap && window.ScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+      gsap.set(stage, { xPercent: -50, transformOrigin: "bottom center" });
+      // recompute the centring / end offsets whenever the layout refreshes (resize)
+      ScrollTrigger.addEventListener("refreshInit", computeVals);
+
+      var hiP = { c: 0 }, bodyP = { c: 0 };
+      var tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#hero", start: "top top", end: "+=180%",
+          pin: true, scrub: 0.6, invalidateOnRefresh: true,
+          onUpdate: function (self) { scrollProgress = self.progress; }
+        }
+      });
+      // background wordmark fades to a faint watermark (not fully gone); red bg never fades
+      tl.to(marquee, { opacity: 0.06, ease: "none", duration: 1 }, 0);
+      // image slides horizontally centre -> far left at FULL SIZE (no shrinking),
+      // finishing at 100% when the laptop corner meets the left screen edge.
+      // (bottom edge stays flush the whole way via transform-origin bottom-centre.)
+      // function values + invalidateOnRefresh keep this correct across resizes.
+      tl.fromTo(stage,
+        { x: function () { return baseX; } },
+        { x: function () { return endX; }, ease: "none", duration: 1 }, 0);
+      // typewriter — "Hi there," leads (40%), then the body types out, finishing at 100%
+      tl.to(hiP, { c: 1, ease: "none", duration: 0.08,
+        onUpdate: function () { typeInto(hiEl, HI, hiP.c); } }, 0.40);
+      tl.to(bodyP, { c: 1, ease: "none", duration: 0.50,
+        onUpdate: function () { typeInto(bodyEl, BODY, bodyP.c); } }, 0.50);
+    } else {
+      // no-GSAP fallback: just apply the part-1 centring shift
+      stage.style.transform = "translateX(calc(-50% + " + baseX + "px))";
+    }
+
+    /* ================= cursor-trail golden reveal =================
+       Active the whole time the visitor is on the page (during and after the
+       scroll transition). ~500ms slower onset (asymmetric easing) so the gold
+       takes a little longer to surface — like a secret. */
+    var rect = stage.getBoundingClientRect();
+    function measure() { rect = stage.getBoundingClientRect(); }
+    window.addEventListener("resize", function () { measure(); buildMarquee(); });
+    window.addEventListener("scroll", measure, true);
+
+    var tx = rect.width / 2, ty = rect.height / 2;
+    var lx = tx, ly = ty;
+    var hist = [];
+    var MAXH = 20;
+    var intensity = 0, tIntensity = 0, lastMove = -1e9, now = 0;
+
+    stage.addEventListener("mousemove", function (e) {
+      tx = e.clientX - rect.left; ty = e.clientY - rect.top;
+      lastMove = now; tIntensity = 1;
+    });
+    stage.addEventListener("mouseenter", function (e) {
+      measure();
+      tx = e.clientX - rect.left; ty = e.clientY - rect.top;
+      lx = tx; ly = ty; hist.length = 0;
+      lastMove = now; tIntensity = 1;
+    });
+    stage.addEventListener("mouseleave", function () { tIntensity = 0; });
+
+    function spot(x, y, r, a) {
+      return "radial-gradient(circle " + r.toFixed(1) + "px at " +
+        x.toFixed(1) + "px " + y.toFixed(1) + "px," +
+        "rgba(0,0,0," + a.toFixed(3) + ") 0%," +
+        "rgba(0,0,0," + (a * 0.82).toFixed(3) + ") 20%," +
+        "rgba(0,0,0," + (a * 0.42).toFixed(3) + ") 46%," +
+        "rgba(0,0,0," + (a * 0.14).toFixed(3) + ") 70%," +
+        "rgba(0,0,0,0) 100%)";
+    }
+    function trailMask(points, baseR, speed) {
+      if (!points.length) return CLEAR;
+      var parts = [];
+      for (var i = 0; i < points.length; i++) {
+        var t = points.length > 1 ? i / (points.length - 1) : 1;
+        var r = baseR * (0.5 + 0.5 * t) + speed * 0.12;
+        var a = 0.2 + 0.8 * t;
+        parts.push(spot(points[i].x, points[i].y, r, a));
+      }
+      return parts.join(",");
+    }
+    function setMask(el, m) { el.style.webkitMaskImage = m; el.style.maskImage = m; }
+
+    function frame() {
+      now = performance.now();
+      requestAnimationFrame(frame);
+
+      // golden hover persists the whole time the visitor is on the page — during
+      // and after the scroll transition. The stage only translates (no scale), so
+      // getBoundingClientRect keeps the trail mask aligned with the cursor.
+      measure();
+      lx += (tx - lx) * 0.32;
+      ly += (ty - ly) * 0.32;
+      var last = hist[hist.length - 1];
+      var speed = last ? Math.hypot(lx - last.x, ly - last.y) : 0;
+      hist.push({ x: lx, y: ly });
+      if (hist.length > MAXH) hist.shift();
+
+      if (now - lastMove > 90) tIntensity = 0;
+      // asymmetric ease: slow rise (+~500ms) so the gold surfaces gradually,
+      // quicker fall back to just the normal body.
+      var k = (tIntensity > intensity) ? 0.05 : 0.1;
+      intensity += (tIntensity - intensity) * k;
+
+      if (intensity < 0.012) {
+        setMask(gold, CLEAR);
+      } else {
+        var minDim = Math.min(rect.width, rect.height);
+        var n = hist.length;
+        var goldR = minDim * 0.24 * intensity;           // bigger reveal so more gold shows
+        var goldPts = hist.slice(Math.max(0, n - 16));   // longer, wider trailing wake
+        setMask(gold, trailMask(goldPts, goldR, speed));
+      }
+    }
+    requestAnimationFrame(frame);
+  })();
+  </script>
+
+  <script>
+  /* ========================================================================
+     SECOND HALF — rainbow fan of honors photos + hover focus + scroll lock.
+     ===================================================================== */
+  (function () {
+    "use strict";
+    var fan = document.getElementById("fan");
+    if (!fan) return;
+
+    // honors photos in display order (Rise Global sits near the centre / lead)
+    var HONORS = [
+      { img: "waves-of-action.png", t: "Waves of Action Fellow",
+        d: "Selected as a Waves of Action Fellow by the Okeanos Foundation for the Sea. Spent 10 days at sea aboard a traditional Polynesian catamaran in France, part of a European ocean-advocacy and environmental-education program." },
+      { img: "jugend-debattiert.png", t: "State Finalist · Jugend Debattiert",
+        d: "Reached the state competition of Jugend Debattiert — Germany's national youth debate tournament, held under the patronage of the Federal President. One of ~200,000 students competing each year." },
+      { img: "faculty-honors.JPG", t: "Faculty Honors · Georgia Tech (4.0 GPA)",
+        d: "Awarded to Georgia Tech undergraduates who earn a 4.0 GPA in a semester — verified and published by the Institute.",
+        link: "https://meritpages.com/saleenati" },
+      { img: "rise-fellow.JPG", t: "Rise Global Fellow",
+        d: "One of 100 people selected worldwide by Schmidt Futures and the Rhodes Trust — the same organization behind the Rhodes Scholarship. A global, competitive, lifelong selection with need-based scholarships, mentorship, and career support for life. Talent is everywhere; opportunity is not. Rise gave me both.",
+        link: "https://www.risefortheworld.org/winners/saleena-tiwari/" },
+      { img: "rise-summit.JPG", t: "Rise Summit · Oxford University",
+        d: "The Rise Residential Summit brought all 100 Global Fellows of a cohort together for an in-person program at the University of Oxford.",
+        link: "https://www.youtube.com/watch?v=QaVgoytSFsQ" },
+      { img: "georgia-tech.JPG", t: "Georgia Tech · CS (Honors)",
+        d: "Studying Computer Science (Honors) at Georgia Tech — ranked #3 in the US and #1 among public universities for undergraduate engineering." },
+      { img: "start-scholar.png", t: "START Scholar",
+        d: "The START Scholarship is awarded to high-school students in Germany for exceptional academic achievement and social commitment — one of Germany's most recognized youth scholarships and a feeder to the Studienstiftung des deutschen Volkes, Germany's most prestigious academic foundation." },
+      { img: "start-state-representative.png", t: "State Representative · Schleswig-Holstein",
+        d: "Represented my state, Schleswig-Holstein, in national debates and events for the START Foundation." }
+    ];
+
+    var N = HONORS.length, mid = (N - 1) / 2;
+    var STEP = 6.4, R = 660;                 // base fan: degrees between cards, arc radius
+    var PART = 118, PART_FALL = 0.34;        // how far neighbours part to make room
+    var FOCUS_SCALE = 1.32;
+    var rad = function (d) { return d * Math.PI / 180; };
+    function baseTx(off) { return Math.sin(rad(off * STEP)) * R; }
+    function baseTy(off) { return (1 - Math.cos(rad(off * STEP))) * R; }
+
+    var cards = [], hover = -1, hoverTimer = null;
+    var capEl = document.getElementById("fan-caption");
+    var capT = capEl.querySelector(".fc-title"), capD = capEl.querySelector(".fc-desc");
+
+    HONORS.forEach(function (o, i) {
+      var c = document.createElement("div");
+      c.className = "hcard";
+      if (o.link) c.style.cursor = "pointer";
+      var im = document.createElement("img");
+      im.src = "../images/honors/" + o.img; im.alt = o.t; im.draggable = false;
+      c.appendChild(im);
+      // less responsive: only focus once the pointer settles on the card briefly
+      c.addEventListener("mouseenter", function () {
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(function () { hover = i; layout(); showCap(i); }, 110);
+      });
+      if (o.link) c.addEventListener("click", function () { window.open(o.link, "_blank", "noopener"); });
+      fan.appendChild(c);
+      cards.push(c);
+    });
+    fan.addEventListener("mouseleave", function () {
+      clearTimeout(hoverTimer);
+      hover = -1; layout(); hideCap();
+    });
+
+    function layout() {
+      for (var i = 0; i < N; i++) {
+        var off = i - mid, tx, ty, rot, sc, z, br;
+        if (i === hover) {                              // grow IN PLACE (do NOT move to centre)
+          tx = baseTx(off); ty = baseTy(off) - 12; rot = off * STEP; sc = FOCUS_SCALE; z = 200; br = 1;
+        } else if (hover >= 0) {                        // neighbours part sideways to make room
+          var dir = (i < hover) ? -1 : 1;
+          var ad = Math.abs(i - hover);
+          var push = dir * PART * Math.max(0, 1 - (ad - 1) * PART_FALL);
+          tx = baseTx(off) + push; ty = baseTy(off); rot = off * STEP; sc = 1; z = 40 - ad; br = 0.78;
+        } else {                                        // resting rainbow arc
+          tx = baseTx(off); ty = baseTy(off); rot = off * STEP; sc = 1; z = 100 - Math.abs(off); br = 1;
+        }
+        var el = cards[i];
+        el.style.transform = "translate(-50%,-50%) translate(" + tx.toFixed(1) + "px," + ty.toFixed(1) +
+                             "px) rotate(" + rot.toFixed(2) + "deg) scale(" + sc + ")";
+        el.style.zIndex = z;
+        el.style.filter = "brightness(" + br + ")";
+      }
+    }
+    function showCap(i) { capT.textContent = HONORS[i].t; capD.textContent = HONORS[i].d; capEl.classList.add("show"); }
+    function hideCap() { capEl.classList.remove("show"); }
+    layout();
+
+    /* Lock between the two halves — firmer, quicker snap so a stop lands on ONE
+       half (never in between). Feels like a click into place. */
+    if (window.gsap && window.ScrollTrigger) {
+      ScrollTrigger.create({
+        trigger: "#honors", start: "top bottom", end: "top top",
+        snap: { snapTo: [0, 1], duration: { min: 0.12, max: 0.28 }, delay: 0, ease: "power3.inOut" }
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

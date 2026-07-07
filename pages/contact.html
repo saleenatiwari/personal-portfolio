@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact · Saleena Tiwari</title>
+  <style>
+    :root { --accent: #A9393A; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; min-height: 100vh; }
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #57101e; color: #F7ECEC;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem; text-align: center;
+      overflow-x: hidden;
+    }
+
+    /* On desktop the whole page (outside the nav + form fields) hides the system
+       cursor and shows the little 3D mini-me instead. */
+    body.mini-cursor { cursor: none; }
+
+    /* elegant top navigation — the "header space": normal mouse here */
+    .site-nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: center; align-items: center;
+      flex-wrap: nowrap; white-space: nowrap;            /* stay on one line */
+      gap: clamp(0.15rem, 1.8vw, 2rem);
+      padding: clamp(0.9rem, 2vw, 1.6rem) clamp(0.6rem, 2vw, 2rem); z-index: 50;
+      cursor: default;
+    }
+    .site-nav a {
+      font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+      /* shrink the font as the viewport narrows instead of folding */
+      font-size: clamp(0.58rem, 1.4vw, 1.02rem); font-weight: 400; letter-spacing: 0.06em;
+      color: #F7ECEC; text-decoration: none;
+      padding: 0.45rem clamp(0.25rem, 0.9vw, 1rem); border-radius: 999px;
+      transition: background-color 0.25s ease; white-space: nowrap; line-height: 1;
+      cursor: pointer;
+    }
+    .site-nav a:hover { background-color: rgba(255, 255, 255, 0.14); }
+    .site-nav a.home { font-weight: 700; }
+
+    /* heading */
+    .tagline {
+      font-size: clamp(2rem, 6vw, 4rem);
+      letter-spacing: -0.02em; color: #F7ECEC;
+      margin-bottom: 5.5rem;   /* gap between the line and the buttons */
+    }
+
+    /* ---- 3D-looking buttons ---- */
+    .buttons {
+      display: flex; flex-direction: row; flex-wrap: wrap;
+      align-items: center; justify-content: center;
+      gap: clamp(1.495rem, 4.485vw, 2.8405rem);   /* +30% on the previous gap */
+    }
+    .btn3d {
+      position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 82px; height: 82px; padding: 0;
+      color: var(--ic, #1A1A1A); border: none; border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 7px 0 #e2dacb, 0 11px 16px rgba(0, 0, 0, 0.16);
+      text-decoration: none; user-select: none; cursor: none;
+      transition: transform 0.07s ease, box-shadow 0.07s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn3d svg { width: 40px; height: 40px; fill: currentColor; flex: 0 0 auto; }
+    /* depressed look: while the mini-me is on it, on real press, or focus */
+    .btn3d.pressed, .btn3d:active {
+      transform: translateY(7px);
+      box-shadow: 0 1px 0 #e2dacb, 0 3px 6px rgba(0, 0, 0, 0.14);
+    }
+    /* white buttons; the logo carries the brand colour (--ic) */
+    .btn-linkedin  { --ic: #0A66C2; }
+    .btn-github    { --ic: #181717; }
+    .btn-x         { --ic: #000000; }
+    .btn-instagram { --ic: #C13584; }
+    .btn-youtube   { --ic: #FF0000; }
+    .btn-message   { --ic: #C0392B; }
+
+    /* ---- the 3D mini-me cursor canvas ---- */
+    #cursor3d {
+      position: fixed; top: 0; left: 0;
+      width: 110px; height: 110px;
+      transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 60;
+      opacity: 0; transition: opacity 0.12s ease;
+      will-change: left, top;
+    }
+
+    /* ---- contact form modal ---- */
+    .overlay {
+      position: fixed; inset: 0; z-index: 70;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(26, 22, 18, 0.38); backdrop-filter: blur(3px);
+      cursor: default;
+    }
+    .overlay.open { display: flex; }
+    .form-card {
+      width: min(440px, 92vw);
+      background: #fff; border: 2px solid #1A1A1A; border-radius: 22px;
+      padding: 1.8rem 1.7rem 1.6rem;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+      text-align: left; position: relative;
+      animation: pop 0.22s ease;
+    }
+    @keyframes pop { from { transform: scale(0.94) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .form-card h2 {
+      font-size: 1.7rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1.2rem;
+    }
+    .field { margin-bottom: 0.9rem; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; color: #6b6358; margin-bottom: 0.3rem; }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: 0.7rem 0.85rem; font-size: 0.98rem; font-family: inherit;
+      color: #1A1A1A; background: #f3f0ea; border: 1.5px solid #e0d8c8; border-radius: 12px;
+      outline: none; transition: border-color 0.18s ease; cursor: text;
+    }
+    .field select { cursor: pointer; appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b6358' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 0.9rem center; padding-right: 2.2rem; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 96px; }
+    .form-actions { display: flex; gap: 0.7rem; margin-top: 0.4rem; }
+    .form-actions button {
+      font-family: inherit; font-size: 1rem; font-weight: 700; border-radius: 12px;
+      padding: 0.75rem 1.1rem; cursor: pointer; border: none;
+    }
+    .btn-send { flex: 1; color: #fff; background: var(--accent); }
+    .btn-send:active { transform: translateY(1px); }
+    .btn-cancel { color: #6b6358; background: #efe9dd; }
+    .form-status { font-size: 0.9rem; margin-top: 0.8rem; min-height: 1.2em; }
+    .form-status.ok { color: #2e7d4f; }
+    .form-status.err { color: #b23b3b; }
+    .close-x {
+      position: absolute; top: 0.9rem; right: 1.1rem;
+      font-size: 1.4rem; line-height: 1; color: #b3a890; background: none; border: none;
+      cursor: pointer;
+    }
+
+    /* mobile: drop the 3D cursor, keep it tidy */
+    @media (max-width: 767px) {
+      #cursor3d { display: none !important; }
+      body.mini-cursor { cursor: auto; }
+      .btn3d { cursor: pointer; }
+      /* stack the buttons vertically, centered */
+      .buttons { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="home" href="about.html">About me</a>
+    <a href="projects.html">Projects</a>
+    <a href="craft.html">Craft</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <div class="buttons">
+    <a class="btn3d btn-linkedin" id="btn-linkedin" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>
+    </a>
+    <a class="btn3d btn-github" id="btn-github" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.25 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg>
+    </a>
+    <a class="btn3d btn-x" id="btn-twitter" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <a class="btn3d btn-instagram" id="btn-instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <defs><linearGradient id="igGrad" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#FEDA75"/><stop offset=".25" stop-color="#FA7E1E"/>
+          <stop offset=".5" stop-color="#D62976"/><stop offset=".75" stop-color="#962FBF"/>
+          <stop offset="1" stop-color="#4F5BD5"/>
+        </linearGradient></defs>
+        <path fill="url(#igGrad)" d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38C1.36 2.67.95 3.34.64 4.13.34 4.9.13 5.77.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.27 2.15.57 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.51 2.91.57C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.27 2.91-.57.79-.31 1.46-.72 2.12-1.38.66-.66 1.07-1.33 1.38-2.12.3-.76.51-1.63.57-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.27-2.15-.57-2.92-.31-.79-.72-1.46-1.38-2.12-.66-.66-1.33-1.07-2.12-1.38-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-10.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/>
+      </svg>
+    </a>
+    <a class="btn3d btn-youtube" id="btn-youtube" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.14C4.5 20.45 12 20.45 12 20.45s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg>
+    </a>
+    <button class="btn3d btn-message" id="btn-message" type="button" aria-label="Send a message">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h20c.55 0 1 .45 1 1v14c0 .55-.45 1-1 1H2c-.55 0-1-.45-1-1V5c0-.55.45-1 1-1zm10 7.2L3.3 6h17.4L12 11.2zM3 8.1V18h18V8.1l-8.4 5.05a1 1 0 0 1-1.04 0L3 8.1z"/></svg>
+    </button>
+  </div>
+
+  <!-- 3D mini-me cursor -->
+  <canvas id="cursor3d"></canvas>
+
+  <!-- contact form modal -->
+  <div class="overlay" id="overlay">
+    <form class="form-card" id="contact-form" novalidate>
+      <button type="button" class="close-x" id="form-close" aria-label="Close">&times;</button>
+      <h2>Say hello</h2>
+      <div class="field">
+        <label for="f-name">Name</label>
+        <input id="f-name" name="name" type="text" autocomplete="name" required />
+      </div>
+      <div class="field">
+        <label for="f-email">Email</label>
+        <input id="f-email" name="email" type="email" autocomplete="email" required />
+      </div>
+      <div class="field">
+        <label for="f-subject">What's this about?</label>
+        <select id="f-subject" name="subject" required>
+          <option value="" disabled selected>Pick a topic…</option>
+          <option value="Let's collaborate">Let's collaborate</option>
+          <option value="Job / career opportunity">Job / career opportunity</option>
+          <option value="Feedback on my work">Feedback on my work</option>
+          <option value="Research / academia">Research / academia</option>
+          <option value="Something else">Something else</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-message">Message</label>
+        <textarea id="f-message" name="message" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-send">Send</button>
+        <button type="button" class="btn-cancel" id="form-cancel">Cancel</button>
+      </div>
+      <div class="form-status" id="form-status"></div>
+    </form>
+  </div>
+
+  <script src="../js/three.min.js"></script>
+  <script src="../js/GLTFLoader.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    /* =========================================================================
+       CONFIG — fill these in.
+       ========================================================================= */
+    var LINKEDIN_URL = "https://www.linkedin.com/in/saleenatiwari/";
+    var GITHUB_URL   = "https://github.com/saleenatiwari";
+    var TWITTER_URL   = "https://x.com/SaleenaTiwari";
+    var INSTAGRAM_URL = "https://www.instagram.com/saleena_ti/";
+    var YOUTUBE_URL   = "https://www.youtube.com/@saleena_ti";
+    var CONTACT_EMAIL = "saleenatiwari@gmail.com";
+
+    // ---- Real inbox delivery, NO server needed (Web3Forms) --------------------
+    // Get a FREE access key in ~30 seconds at https://web3forms.com — enter your
+    // email, they email you a key, no account required. Paste it below and the
+    // form will deliver every message straight to your inbox (CONTACT_EMAIL).
+    var WEB3FORMS_KEY = "ad76d500-b413-486f-bb8d-4af57770c934";     // <-- paste your Web3Forms access key here
+    // (Optional alternative) a Formspree endpoint URL instead, e.g. "https://formspree.io/f/xxxx".
+    var FORM_ENDPOINT = "";
+    // If both are empty, the form falls back to opening the visitor's mail app (mailto).
+
+    document.getElementById("btn-linkedin").href = LINKEDIN_URL;
+    document.getElementById("btn-github").href = GITHUB_URL;
+    document.getElementById("btn-twitter").href = TWITTER_URL;
+    document.getElementById("btn-instagram").href = INSTAGRAM_URL;
+    document.getElementById("btn-youtube").href = YOUTUBE_URL;
+
+    /* =========================================================================
+       Contact form modal
+       ========================================================================= */
+    var overlay = document.getElementById("overlay");
+    var form = document.getElementById("contact-form");
+    var statusEl = document.getElementById("form-status");
+
+    function openForm() { overlay.classList.add("open"); document.getElementById("f-name").focus(); }
+    function closeForm() { overlay.classList.remove("open"); }
+
+    document.getElementById("btn-message").addEventListener("click", openForm);
+    document.getElementById("form-close").addEventListener("click", closeForm);
+    document.getElementById("form-cancel").addEventListener("click", closeForm);
+    overlay.addEventListener("mousedown", function (e) { if (e.target === overlay) closeForm(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeForm(); });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var data = {
+        name: form.name.value.trim(),
+        email: form.email.value.trim(),
+        subject: form.subject.value.trim(),
+        message: form.message.value.trim()
+      };
+      if (!data.name || !data.email || !data.subject || !data.message) {
+        statusEl.textContent = "Please fill in every field.";
+        statusEl.className = "form-status err";
+        return;
+      }
+
+      if (WEB3FORMS_KEY || FORM_ENDPOINT) {
+        statusEl.textContent = "Sending…";
+        statusEl.className = "form-status";
+        var url, payload;
+        if (WEB3FORMS_KEY) {
+          url = "https://api.web3forms.com/submit";
+          payload = {
+            access_key: WEB3FORMS_KEY,
+            subject: "Portfolio message: " + data.subject,
+            name: data.name, email: data.email, replyto: data.email, message: data.message
+          };
+        } else {
+          url = FORM_ENDPOINT; payload = data;
+        }
+        fetch(url, {
+          method: "POST",
+          headers: { "Accept": "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }).then(function (r) {
+          return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: r.ok, j: {} }; });
+        }).then(function (res) {
+          if (res.ok && res.j.success !== false) {
+            statusEl.textContent = "Thank you! Your message is on its way.";
+            statusEl.className = "form-status ok";
+            form.reset();
+            setTimeout(closeForm, 1400);
+          } else {
+            throw new Error("bad status");
+          }
+        }).catch(function () {
+          statusEl.textContent = "Hmm, that didn't send. Try again, or email me directly.";
+          statusEl.className = "form-status err";
+        });
+      } else {
+        // mailto fallback — opens the visitor's mail client, addressed to me.
+        var body = "Name: " + data.name + "\nEmail: " + data.email + "\n\n" + data.message;
+        var href = "mailto:" + CONTACT_EMAIL +
+          "?subject=" + encodeURIComponent(data.subject) +
+          "&body=" + encodeURIComponent(body);
+        window.location.href = href;
+        statusEl.textContent = "Opening your email app…";
+        statusEl.className = "form-status ok";
+      }
+    });
+
+    /* =========================================================================
+       3D mini-me cursor  (skipped on small screens)
+       ========================================================================= */
+    if (window.innerWidth < 768) { return; }
+
+    var canvas = document.getElementById("cursor3d");
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setSize(110, 110, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if ("outputColorSpace" in renderer) { renderer.outputColorSpace = THREE.SRGBColorSpace; }
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
+    camera.position.set(0, 0.35, 3.4);
+    camera.lookAt(0, 0, 0);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xcdbfa6, 0.9));
+    var key = new THREE.DirectionalLight(0xffffff, 1.5);
+    key.position.set(2, 3, 4);
+    scene.add(key);
+    var fill = new THREE.DirectionalLight(0xffffff, 0.5);
+    fill.position.set(-3, 1, 2);
+    scene.add(fill);
+
+    // pivot group: rotates (facing) + bobs (jumping). The model sits inside.
+    var pivot = new THREE.Group();
+    scene.add(pivot);
+    var model = null;
+    var FACE_OFFSET = -Math.PI / 2;   // base yaw so the girl faces the camera at rest
+
+    var loader = new THREE.GLTFLoader();
+    loader.load("../GLB/mini-me/saleena-girl.glb", function (gltf) {
+      model = gltf.scene;
+      // Scale to ~1.7 units tall FIRST, then centre (her geometry sits far from its
+      // own origin, so centre-before-scale would fling her off-screen).
+      var box = new THREE.Box3().setFromObject(model);
+      var size = new THREE.Vector3(); box.getSize(size);
+      model.scale.setScalar(1.7 / (size.y || 1));
+      box = new THREE.Box3().setFromObject(model);
+      var center = new THREE.Vector3(); box.getCenter(center);
+      model.position.sub(center);
+      // holder gives the base facing offset; pivot then rotates around her centre.
+      var holder = new THREE.Group();
+      holder.rotation.y = FACE_OFFSET;
+      holder.add(model);                 // keep her own baked colours (no override)
+      pivot.add(holder);
+    });
+
+    /* ---- pointer + zone tracking ---- */
+    var mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+    var lastX = mouseX, lastY = mouseY, lastT = performance.now();
+    var speed = 0;          // smoothed pointer speed
+    var targetRotY = 0;     // facing, from horizontal velocity
+    var showModel = false;  // visible only outside nav + form fields
+    var overButton = null;  // the .btn3d the pointer is currently on (or null)
+    var lastButton = null;
+
+    function zoneFor(target) {
+      if (!target || !target.closest) return { showModel: false, button: null };
+      if (target.closest(".site-nav")) return { showModel: false, button: null };       // header → normal mouse
+      if (target.closest(".overlay")) return { showModel: false, button: null };         // form/text boxes → normal mouse
+      var btn = target.closest(".btn3d");
+      return { showModel: true, button: btn };
+    }
+
+    window.addEventListener("mousemove", function (e) {
+      mouseX = e.clientX; mouseY = e.clientY;
+      var now = performance.now();
+      var dt = Math.max(now - lastT, 8);
+      var dx = e.clientX - lastX, dy = e.clientY - lastY;
+      var inst = Math.hypot(dx, dy) / dt * 16; // ~px per frame
+      speed = speed * 0.6 + inst * 0.4;
+      // turn with horizontal motion (mirrored: moving right swings it the other way).
+      var want = Math.max(-0.9, Math.min(0.9, dx * 0.06));
+      if (Math.abs(dx) > 0.5) { targetRotY = want; }
+      lastX = e.clientX; lastY = e.clientY; lastT = now;
+
+      var z = zoneFor(e.target);
+      showModel = z.showModel;
+      overButton = z.button;
+    });
+
+    // keep the pressed look in sync with whichever button the mini-me is standing on
+    function setPressed(btn, on) { if (btn) btn.classList.toggle("pressed", on); }
+
+    // a little hop when a button is actually clicked, then it navigates / opens
+    document.querySelectorAll(".btn3d").forEach(function (btn) {
+      btn.addEventListener("mousedown", function () { hopBoost = 1.0; });
+    });
+    var hopBoost = 0;
+
+    /* ---- render loop ---- */
+    var bobPhase = 0;
+    var BASE_Y = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // follow the cursor
+      canvas.style.left = mouseX + "px";
+      canvas.style.top = mouseY + "px";
+      canvas.style.opacity = showModel ? "1" : "0";
+      document.body.classList.toggle("mini-cursor", showModel);
+
+      // pressed-button bookkeeping
+      if (overButton !== lastButton) {
+        setPressed(lastButton, false);
+        lastButton = overButton;
+      }
+      setPressed(overButton, !!overButton);
+
+      // idle decay
+      speed *= 0.86;
+      if (speed < 0.04) speed = 0;
+      if (speed < 0.25) { targetRotY *= 0.95; }   // hold the turn a while before facing front again
+      hopBoost *= 0.85;
+
+      if (model) {
+        // facing + a slight lean in the travel direction. Low lerp = the turn lags
+        // behind the cursor, so it reads like the figure is dragged around.
+        pivot.rotation.y += (targetRotY - pivot.rotation.y) * 0.10;
+        var leanZ = -targetRotY * 0.28;
+        pivot.rotation.z += (leanZ - pivot.rotation.z) * 0.10;
+
+        // jumping: frequency + height scale with pointer speed
+        bobPhase += 0.12 + speed * 0.10;
+        var amp = Math.min(speed * 0.045, 0.62);
+        var targetY;
+        if (overButton) {
+          targetY = BASE_Y - 0.34;          // press down onto the button
+        } else {
+          targetY = BASE_Y + Math.abs(Math.sin(bobPhase)) * amp + hopBoost * 0.5;
+        }
+        pivot.position.y += (targetY - pivot.position.y) * 0.3;
+
+        // squash a touch while pressing a button
+        var sTarget = overButton ? 0.82 : 1.0;
+        pivot.scale.y += (sTarget - pivot.scale.y) * 0.25;
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  })();
+  </script>
+</body>
+</html>
