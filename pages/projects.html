@@ -93,11 +93,13 @@
     .stack {
       position: relative;
       width: min(66%, 620px); aspect-ratio: 16 / 10;
-      transform: scale(1.45);
+      /* smaller + centred so the whole deck fits inside col-left (no right-edge
+         clipping) while the narrower deck still clears the dot counter */
+      transform: scale(1.28);
       transition: transform 0.5s cubic-bezier(.5, 0, .2, 1);
       will-change: transform;
     }
-    .stack.aside { transform: scale(0.98) translateX(-20%); }
+    .stack.aside { transform: translateX(-9%) scale(0.94); }
     .card {
       position: absolute; left: 50%; top: 50%;
       width: 100%; aspect-ratio: 16 / 10;
@@ -115,8 +117,8 @@
        Sits inside the section (below the nav), centered vertically — never an
        overlay, never covers the header. ---- */
     .detail {
-      position: absolute; top: 50%; left: 53%;   /* clears the deck on the left */
-      width: min(43vw, 660px);
+      position: absolute; top: 50%; left: 47%;   /* pulled left + wider to close the gap to the deck */
+      width: min(50vw, 700px);
       background: #fff; border-radius: 20px;
       border: 1px solid rgba(0,0,0,0.06);
       box-shadow: 0 26px 60px rgba(0,0,0,0.22);
@@ -274,8 +276,18 @@
     @media (max-width: 900px) {
       .col-right { display: none; }
       .col-left { flex-basis: 100%; }
-      .stack { width: min(82%, 440px); }
+      /* deck fits the screen at natural size (no desktop scale-up / right-nudge) */
+      .stack { width: min(84%, 400px); transform: none; }
+      .stack.aside { transform: scale(0.9) translateY(-8%); }
       .counter { left: 0.6rem; }
+      /* filters move to a centred, wrapping row under the nav so they never
+         sit on top of the deck */
+      .filters {
+        top: 4.4rem; bottom: auto; right: auto; left: 50%;
+        transform: translateX(-50%);
+        flex-direction: row; flex-wrap: wrap; justify-content: center;
+        gap: 0.45rem 0.9rem; width: 92vw;
+      }
       /* detail becomes a bottom card on small screens */
       .detail {
         left: 50%; top: auto; bottom: 1rem; width: min(92%, 420px);
@@ -284,6 +296,35 @@
       }
       .detail.open { transform: translateX(-50%) scale(1) translateY(0); }
       .detail-body { max-height: 46vh; }
+    }
+
+    /* =====================================================================
+       Small-screen gate — this experience is built for a desktop screen.
+       On phones, small windows, or portrait orientation we replace the page
+       with a short message + a link to the contact page (which stays usable).
+       ===================================================================== */
+    .desktop-gate { display: none; }
+    @media (max-width: 1024px), (orientation: portrait) {
+      html, body { overflow: hidden !important; }
+      .desktop-gate {
+        display: flex; position: fixed; inset: 0; z-index: 99999;
+        flex-direction: column; align-items: center; justify-content: center;
+        gap: 1.9rem; padding: 2rem; text-align: center;
+        background: #57101e; color: #F7ECEC;
+      }
+      .desktop-gate .gate-title {
+        font-family: "Didot", "Bodoni 72", "Hoefler Text", "Playfair Display", Georgia, serif;
+        font-weight: 700; font-size: clamp(1.6rem, 6vw, 2.6rem); line-height: 1.25;
+        max-width: 20ch; letter-spacing: 0.01em;
+      }
+      .desktop-gate .gate-btn {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 1rem; font-weight: 600; letter-spacing: 0.02em;
+        color: #57101e; background: #F7ECEC; text-decoration: none;
+        padding: 0.85rem 2rem; border-radius: 999px;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+      }
+      .desktop-gate .gate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
     }
   </style>
 
@@ -302,6 +343,12 @@
     <a href="craft.html">Craft</a>
     <a href="contact.html">Contact</a>
   </nav>
+
+  <!-- shown only on small / portrait screens (see .desktop-gate) -->
+  <div class="desktop-gate">
+    <p class="gate-title">This site is best experienced on a desktop.</p>
+    <a class="gate-btn" href="contact.html">Get in touch</a>
+  </div>
 
   <!-- arrows that snap between the two halves of the site -->
   <button class="pager-arrow down" id="arrow-down" aria-label="Go to skills">
@@ -382,7 +429,7 @@
       { key: "ai",               label: "AI & Automation" },
       { key: "data",             label: "Data & APIs" }
     ];
-    var FEATURED = [0, 2, 3, 6];   // curated highlight reel (edit freely)
+    var FEATURED = [0, 1, 3, 6];   // curated highlight reel (edit freely)
     var PROJECT_FILTERS = {
       0: ["entrepreneurship", "ai"],   // Cohort
       1: ["entrepreneurship"],         // Pantry
@@ -422,10 +469,10 @@
       1: {
         tagline: "The fridge in your pocket. Track what you have, waste less, buy smarter.",
         sections: [
-          { h: "Why I built it", p: "I kept throwing away food I forgot I had and buying things I already owned. I wanted an app that did the remembering for me. When I talked to my friends and my parents about it, I realized this wasn't just me being disorganized — people don't waste food because they want to. They waste it because tracking what's already in the fridge takes more effort than just buying it again." },
+          { h: "Why I built it", p: "I kept throwing away food I forgot I had and buying things I already owned. I wanted an app that did the remembering for me. When I talked to my friends and my parents about it, I realized this wasn't just me being disorganized (what I initially thought). People end up wasting food because tracking what is in the fridge takes more effort than just buying it again." },
           { h: "What it does", p: "Pantry tracks the food you already have, reminds you before things expire, and suggests recipes based on what's sitting in your kitchen. You stop buying duplicates and start using what you own. When something runs out, it moves straight to your shopping list." },
           { h: "How I built it", p: "Built solo as a mobile app using SwiftUI and the Open Food Facts database." },
-          { h: "What I learned", p: "The hard part was making data entry feel effortless. 'User friendly' really just means less friction — if someone has to stop and think about how to use the app, the app is already losing. The goal is for it to feel obvious every single time." },
+          { h: "What I learned", p: "The hard part was making data entry feel effortless. 'User friendly' really just means less friction. If someone has to stop and think about how to use the app, the app is already losing. The goal is for it to feel obvious every single time." },
           { h: "Traction", p: "Shared with friends and family for informal testing. Enough of them kept coming back that I'm now prepping a public TestFlight release." },
           { h: "Status & my role", p: "Personal project, TestFlight release planned. I designed and built the whole thing myself, from scratch." }
         ],
@@ -437,7 +484,7 @@
         tagline: "An AI dance coach that teaches you the moves instead of letting you fake them.",
         embed: "HtDZna7zXd0",
         sections: [
-          { h: "Why I built it", p: "Everyone is learning to look like a creator without actually learning anything. I wanted a tool that taught the real skill, not one that made it easier to fake it. The tools that could actually help people learn to move and create are the ones that are missing — instead we have a flood of AI-generated content with nobody getting better from it." },
+          { h: "Why I built it", p: "Everyone is learning to look like a creator without actually learning anything. I wanted a tool that taught the real skill. The tools that could help people learn to move and create are the ones that are missing. Instead we have a flood of AI-generated content with nobody getting better from it." },
           { h: "What it does", p: "HypeHub tracks your body in real time using computer vision, compares your movement frame by frame against a reference dance video, and gives you a live accuracy score plus a slow-motion practice mode." },
           { h: "How I built it", p: "MediaPipe Pose Detection for real-time joint tracking, ElevenLabs for spoken feedback instead of a silent score, and Gemini to flag dangerous trending challenges and suggest safer alternatives. Runs as a single-page web app deployed on Vercel." },
           { h: "What I learned", p: "Real-time pose comparison was easier to build than it was to make feel encouraging rather than critical. The voice feedback ended up mattering just as much as the accuracy score itself." },
@@ -452,9 +499,9 @@
         tagline: "A free pipeline that turns my private journal into ready-to-post drafts, every weekday morning.",
         sections: [
           { h: "Why I built it", p: "I journal daily but I never post. Writing for an audience feels like a completely different skill than writing for myself, and every tool that solves this problem costs money I didn't want to spend as a student. I was tired of watching 'build in public' tools charge for something I knew I could build myself in a weekend." },
-          { h: "What it does", p: "Every weekday at 10am, two drafts land in my Telegram — written in my own voice, pulled from what I already journaled in Notion. I just review, and it's ready to post. No writing required." },
+          { h: "What it does", p: "Every weekday at 10am, two drafts land in my Telegram. They are written in my own voice and are pulled from what I already journaled in Notion. I just review, and it is ready to post. No writing required." },
           { h: "How I built it", p: "A GitHub Action powered by the Gemini API, pulling from my Notion journal and delivering drafts through Telegram. Fully automated, no paid tools." },
-          { h: "What I learned", p: "Training the model on how I actually talk mattered more than any prompt-engineering technique — the drafts only became usable once I stopped trying to make them sound generically good. And honestly, I'm still not posting as consistently as I wanted to. Maybe I was also partly just looking for an excuse to build the automation ;)" },
+          { h: "What I learned", p: "Training the model on how I actually talk mattered more than any prompt-engineering technique. The drafts only became usable once I stopped trying to make them sound generically good. Honestly, I am still not posting as consistently as I wanted to. But maybe I was also partly just looking for an excuse to build the automation ;)" },
           { h: "Status & my role", p: "Personal project, live and running daily. Built entirely on my own time, solo." }
         ],
         links: [
@@ -475,12 +522,12 @@
         links: []
       },
       5: {
-        tagline: "Talk into your phone, get organized notes out. Built for visual learners — no writing required.",
+        tagline: "Talk into your phone, get organized notes out. Built for visual learners, no writing required.",
         sections: [
-          { h: "Why I built it", p: "I think out loud, not on paper. Ideas I have in the shower or at 2am disappear because writing them down feels like too much friction in the moment. The first version of an idea is the whole foundation for the second one, and I needed a way to make sure that first version always existed — even on the nights I didn't feel like writing anything down." },
+          { h: "Why I built it", p: "I think out loud, not on paper. Ideas I have in the shower or at 2am disappear because writing them down feels like too much friction in the moment. The first version of an idea is the whole foundation for the second one, and I needed a way to make sure that first version always existed, even on the nights I didn't feel like writing anything down." },
           { h: "What it does", p: "You talk, Yap listens, transcribes it live, and uses AI to sort what you said into the right bucket: tasks, projects, journal entries, life goals, or drafts. One recording can turn into several organized notes without you having to sort anything yourself." },
           { h: "How I built it", p: "Building natively in Swift and SwiftUI, using Apple's Speech framework for real-time transcription and the Gemini API to categorize and structure the output. Stored locally with Core Data." },
-          { h: "What I learned", p: "Easy access to writing down your racing thoughts is the real challenge — which is why I'm exploring a widget or home-screen shortcut to reach Yap even quicker." },
+          { h: "What I learned", p: "Easy access to writing down your racing thoughts is the real challenge, which is why I am exploring a widget or home-screen shortcut to reach Yap even quicker." },
           { h: "Traction", p: "Still in development." },
           { h: "Status & my role", p: "Solo project, actively in development. Recording, live transcription, and the AI integration are working; categorization logic, navigation, and the full design system are still being built." }
         ],
@@ -491,9 +538,9 @@
         embed: "iKL0rhhmQdo",
         sections: [
           { h: "Why I built it", p: "Atlanta made cool roofs mandatory but didn't make them simple. Building owners suddenly had a legal requirement with no clear path forward. I wanted someone to be able to go from 'now what?' to an actual plan in one sitting." },
-          { h: "What it does", p: "A user enters their address and roof details, and GreenTop ranks upgrade options — cool-roof coating, solar, green roofs, rainwater harvesting — by cost, savings, payback period, and climate impact. The output is a specific plan for that building, not a generic sustainability recommendation." },
+          { h: "What it does", p: "A user enters their address and roof details, and GreenTop ranks upgrade options, like cool-roof coating, solar, green roofs and rainwater harvesting, by cost, savings, payback period, and climate impact. The output is a specific plan for that building, not a generic sustainability recommendation." },
           { h: "How I built it", p: "Google Solar API for rooftop data, Gemini to turn that data and user inputs into a ranked recommendation, built on Next.js, Python, and Tailwind. As a team we signed up for free tiers of several APIs to access the data we needed within hackathon constraints." },
-          { h: "What I learned", p: "The hard part wasn't the sustainability math — it was making sure two different buildings didn't get the same generic answer. I also learned how much data you actually need to make this kind of recommendation useful: roof specs, weather patterns, local utility rates. Working with limited data and free-tier access pushed us to be creative about what we could realistically model." },
+          { h: "What I learned", p: "The hard part was making sure two different buildings didn't get the same generic answer. For this I also learned how much data you actually need to make this kind of recommendation useful: roof specs, weather patterns, local utility rates. Working with limited data and free-tier access pushed us to be creative about what we could realistically model." },
           { h: "Traction", p: "Built for a hackathon, with a live demo deployed on Vercel and a public GitHub repo." },
           { h: "Status & my role", p: "Hackathon build. I built the recommendation engine, the dashboard, the API integration, and the entire frontend myself." }
         ],
